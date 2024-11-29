@@ -1,0 +1,31 @@
+{
+  "id": "quickssrf",
+  "name": "QuickSSRF",
+  "version": "0.3.0",
+  "description": "Grid-based authorization testing across multiple users and roles.",
+  "author": {
+    "name": "w2xim3",
+    "email": "dev@caido.io",
+    "url": "https://github.com/caido-community/quickssrf"
+  },
+  "plugins": [
+    {
+      "kind": "frontend",
+      "id": "quickssrf-frontend",
+      "name": "QuickSSRF Frontend",
+      "entrypoint": "frontend/script.js",
+      "style": "frontend/style.css",
+      "backend": {
+        "id": "quickssrf-backend"
+      }
+    },
+    {
+      "kind": "backend",
+      "id": "quickssrf-backend",
+      "name": "QuickSSRF Backend",
+      "runtime": "javascript",
+      "entrypoint": "backend/script.js"
+    }
+  ]
+}
+

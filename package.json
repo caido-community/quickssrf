@@ -1,0 +1,21 @@
+{
+  "name": "QuickSSRF",
+  "version": "0.0.1",
+  "description": "QuickSSRF is a tool for detecting out-of-band vulnerabilities via server interactions.",
+  "author": "w2xim3 <dev@caido.io>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "typecheck": "pnpm -r typecheck",
+    "build": "node scripts/clean.js && pnpm -r build && node scripts/pack.js",
+    "lint": "biome check --write ./packages/*/src"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.8.3",
+    "@caido/plugin-manifest": "0.1.3",
+    "jszip": "3.10.1",
+    "typescript": "5.5.4",
+    "vite": "5.2.7",
+    "uuid": "^11.0.3"
+  }
+}
