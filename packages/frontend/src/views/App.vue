@@ -35,6 +35,7 @@ const parseDnsResponse = (json: any): Response => {
   };
 };
 
+
 // Ajouter les données de `parseDnsResponse` à la source
 const addToSourceData = (response: Response) => {
   QuickSSRFBtnCount.value += 1;
@@ -57,6 +58,8 @@ const tableData = computed(() =>
 const selectedRow = ref<Response | null>(null);
 
 const onRowClick = (event: { data: { req: number } }) => {
+  QuickSSRFBtnCount.value = 0;
+  QuickSSRFBtn.setCount(QuickSSRFBtnCount.value);
   const selectedIndex = event.data.req - 1;
   selectedRow.value = sourceData.value[selectedIndex];
   onSelectedData(selectedRow.value);

@@ -1,11 +1,11 @@
 {
   "id": "quickssrf",
   "name": "QuickSSRF",
-  "version": "0.3.0",
-  "description": "Grid-based authorization testing across multiple users and roles.",
+  "version": "0.1.0",
+  "description": "Real-time Interaction Monitoring with Interactsh",
   "author": {
     "name": "w2xim3",
-    "email": "dev@caido.io",
+    "email": "https://www.linkedin.com/in/maxime-paill%C3%A9-9125b4150/",
     "url": "https://github.com/caido-community/quickssrf"
   },
   "plugins": [
