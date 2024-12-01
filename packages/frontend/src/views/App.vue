@@ -5,10 +5,9 @@ import Column from "primevue/column";
 import { useSDK } from "@/plugins/sdk";
 import { ref, onMounted, computed } from "vue";
 import {useClientService} from "@/services/InteractshService";
-import {QuickSSRFBtn, QuickSSRFBtnCount} from "@/index";
+import eventBus, {QuickSSRFBtn, QuickSSRFBtnCount} from "@/index";
 import { v4 as uuidv4 } from "uuid";
 import { useClipboard } from "@vueuse/core";
-
 
 const sdk = useSDK();
 const responseEditorRef = ref();
@@ -16,6 +15,7 @@ const requestEditorRef = ref();
 const request = ref();
 const response = ref();
 const clipboard = useClipboard();
+const cachedRow = ref<Response | null>(null);
 let clientService: any = null;
 // Source de données réactive
 const sourceData = ref<Response[]>([]); // Le tableau stockant les données
@@ -33,6 +33,25 @@ const parseDnsResponse = (json: any): Response => {
   };
 };
 
+function waitForEditorRef() {
+  return new Promise<void>((resolve) => {
+    const interval = setInterval(() => {
+      if (requestEditorRef.value && responseEditorRef.value) {
+        clearInterval(interval); // Stop checking
+        resolve(); // Continue execution
+      }
+    }, 100); // Check every 100ms
+  });
+}
+
+function handleUpdateSelected(event) {
+  waitForEditorRef().then(() => {
+    if (cachedRow.value) {
+      onSelectedData(cachedRow.value); // Trigger with cached data
+    }
+  });
+}
+eventBus.addEventListener("updateSelected", handleUpdateSelected);
 
 // Ajouter les données de `parseDnsResponse` à la source
 const addToSourceData = (response: Response) => {
@@ -60,11 +79,13 @@ const onRowClick = (event: { data: { req: number } }) => {
   QuickSSRFBtn.setCount(QuickSSRFBtnCount.value);
   const selectedIndex = event.data.req - 1;
   selectedRow.value = sourceData.value[selectedIndex];
+  cachedRow.value = selectedRow.value;
   onSelectedData(selectedRow.value);
 };
 
 // Méthode appelée lors de la sélection d’une ligne
 const onSelectedData = (selectedData: Response | null) => {
+  console.log(selectedData?.rawResponse);
   responseEditorRef.value.getEditorView().dispatch({
         changes: {
           from: 0,
@@ -109,6 +130,7 @@ const onManualPooling = async () => {
 };
 const onClearData = async () => {
   sourceData.value = [];
+  cachedRow.value = null;
   responseEditorRef.value.getEditorView().dispatch({
     changes: {
       from: 0,

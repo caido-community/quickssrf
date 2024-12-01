@@ -11,8 +11,8 @@ import manifest from "../../../manifest.json" with { type: "json" };
 import { SDKPlugin } from "./plugins/sdk";
 import type { FrontendSDK } from "./types";
 import {createPinia} from "pinia";
-
-
+const eventBus = new EventTarget();
+export default eventBus;
 
 // This is the entry point for the frontend plugin
 export let QuickSSRFBtn: any;
@@ -36,6 +36,8 @@ export const init = (sdk: FrontendSDK) => {
     height: "100%",
     width: "100%",
   });
+  const event = new CustomEvent("updateSelected");
+
 
   // Set the ID of the root element
   // We use the manifest ID to ensure that the ID is unique per-plugin
@@ -50,7 +52,9 @@ export const init = (sdk: FrontendSDK) => {
   // Make sure to use a unique name for the page
   sdk.navigation.addPage("/quickssrf", {
     body: root,
-    onEnter: () => {QuickSSRFBtnCount.value = 0;QuickSSRFBtn.setCount(QuickSSRFBtnCount.value);}});
+    onEnter: () => {QuickSSRFBtnCount.value = 0;QuickSSRFBtn.setCount(QuickSSRFBtnCount.value);
+      eventBus.dispatchEvent(event);
+    }});
 
   QuickSSRFBtn = sdk.sidebar.registerItem("QuickSSRF", "/quickssrf", {icon: 'fas fa-globe'});
   QuickSSRFBtn.setCount(QuickSSRFBtnCount.value);
