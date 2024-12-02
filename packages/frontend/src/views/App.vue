@@ -85,7 +85,6 @@ const onRowClick = (event: { data: { req: number } }) => {
 
 // Méthode appelée lors de la sélection d’une ligne
 const onSelectedData = (selectedData: Response | null) => {
-  console.log(selectedData?.rawResponse);
   responseEditorRef.value.getEditorView().dispatch({
         changes: {
           from: 0,
@@ -170,7 +169,7 @@ onMounted(() => {
 
 
 <template>
-  <div class="h-full flex flex-col gap-4 ml-1">
+  <div class="h-full flex flex-col gap-4">
     <!-- Top Pane -->
     <div class="w-full flex-1 min-h-0 rounded-[0.25rem] shadow-md bg-surface-0 dark:bg-surface-800 text-surface-700 dark:text-surface-0" id="ici">
       <div class="h-full flex flex-col">
