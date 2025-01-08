@@ -8,6 +8,7 @@ import { computed, onMounted, ref } from "vue";
 
 import eventBus, { QuickSSRFBtn, QuickSSRFBtnCount } from "@/index";
 import { useSDK } from "@/plugins/sdk";
+import { Response } from "@/types";
 import { useClientService } from "@/services/InteractshService";
 
 const sdk = useSDK();
@@ -19,10 +20,10 @@ const clipboard = useClipboard();
 const cachedRow = ref<Response | undefined>(undefined);
 let clientService: ReturnType<typeof useClientService> | undefined = undefined;
 // Source de données réactive
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const sourceData = ref<any[]>([]); // Le tableau stockant les données
+const sourceData = ref<Response[]>([]); // Le tableau stockant les données
 
-const parseDnsResponse = (json: Record<string, unknown>) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const parseDnsResponse = (json: any): Response => {
   return {
     protocol: json.protocol,
     uniqueId: json["unique-id"],
@@ -56,7 +57,7 @@ function handleUpdateSelected() {
 eventBus.addEventListener("updateSelected", handleUpdateSelected);
 
 // Ajouter les données de `parseDnsResponse` à la source
-const addToSourceData = (response: Record<string, unknown>) => {
+const addToSourceData = (response: Response) => {
   QuickSSRFBtnCount.value += 1;
   QuickSSRFBtn.setCount(QuickSSRFBtnCount.value);
   sourceData.value.push(response);

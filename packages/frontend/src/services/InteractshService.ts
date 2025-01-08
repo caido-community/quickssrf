@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { type Ref, ref } from "vue";
 
 import { cryptoService } from "@/services/CryptoService";
+import { generateRandomID } from "@/utils";
 
 enum State {
   Idle = 0,
@@ -265,16 +266,6 @@ export const useClientService = () => {
       secretKey: secretKey.value,
     };
     return JSON.stringify(session, null, 2); // Return JSON string for download or storage
-  };
-
-  // Generate a random ID
-  const generateRandomID = (length: number): string => {
-    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-    let id = "";
-    for (let i = 0; i < length; i++) {
-      id += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return id;
   };
 
   // Generate a new interaction URL
