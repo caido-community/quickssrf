@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import Button from "primevue/button";
-import DataTable from "primevue/datatable";
-import Column from "primevue/column";
+import eventBus, { QuickSSRFBtn, QuickSSRFBtnCount } from "@/index";
 import { useSDK } from "@/plugins/sdk";
-import { ref, onMounted, computed } from "vue";
-import {useClientService} from "@/services/InteractshService";
-import eventBus, {QuickSSRFBtn, QuickSSRFBtnCount} from "@/index";
-import { v4 as uuidv4 } from "uuid";
+import { useClientService } from "@/services/InteractshService";
 import { useClipboard } from "@vueuse/core";
+import Button from "primevue/button";
+import Column from "primevue/column";
+import DataTable from "primevue/datatable";
+import { v4 as uuidv4 } from "uuid";
+import { computed, onMounted, ref } from "vue";
 
 const sdk = useSDK();
 const responseEditorRef = ref();
@@ -21,149 +21,149 @@ let clientService: any = null;
 const sourceData = ref<Response[]>([]); // Le tableau stockant les données
 
 const parseDnsResponse = (json: any): Response => {
-  return {
-    protocol: json.protocol,
-    uniqueId: json["unique-id"],
-    fullId: json["full-id"],
-    qType: json["q-type"],
-    rawRequest: json["raw-request"],
-    rawResponse: json["raw-response"],
-    remoteAddress: json["remote-address"],
-    timestamp: json.timestamp,
-  };
+	return {
+		protocol: json.protocol,
+		uniqueId: json["unique-id"],
+		fullId: json["full-id"],
+		qType: json["q-type"],
+		rawRequest: json["raw-request"],
+		rawResponse: json["raw-response"],
+		remoteAddress: json["remote-address"],
+		timestamp: json.timestamp,
+	};
 };
 
 function waitForEditorRef() {
-  return new Promise<void>((resolve) => {
-    const interval = setInterval(() => {
-      if (requestEditorRef.value && responseEditorRef.value) {
-        clearInterval(interval); // Stop checking
-        resolve(); // Continue execution
-      }
-    }, 100); // Check every 100ms
-  });
+	return new Promise<void>((resolve) => {
+		const interval = setInterval(() => {
+			if (requestEditorRef.value && responseEditorRef.value) {
+				clearInterval(interval); // Stop checking
+				resolve(); // Continue execution
+			}
+		}, 100); // Check every 100ms
+	});
 }
 
 function handleUpdateSelected(event) {
-  waitForEditorRef().then(() => {
-    if (cachedRow.value) {
-      onSelectedData(cachedRow.value); // Trigger with cached data
-    }
-  });
+	waitForEditorRef().then(() => {
+		if (cachedRow.value) {
+			onSelectedData(cachedRow.value); // Trigger with cached data
+		}
+	});
 }
 eventBus.addEventListener("updateSelected", handleUpdateSelected);
 
 // Ajouter les données de `parseDnsResponse` à la source
 const addToSourceData = (response: Response) => {
-  QuickSSRFBtnCount.value += 1;
-  QuickSSRFBtn.setCount(QuickSSRFBtnCount.value);
-  sourceData.value.push(response);
+	QuickSSRFBtnCount.value += 1;
+	QuickSSRFBtn.setCount(QuickSSRFBtnCount.value);
+	sourceData.value.push(response);
 };
 
 // Mise à jour des données du tableau en temps réel
 const tableData = computed(() =>
-    sourceData.value.map((item, index) => ({
-      req: index + 1,
-      dateTime: new Date(item.timestamp).toISOString(),
-      type: item.protocol.toUpperCase(),
-      payload: item.fullId,
-      source: item.remoteAddress,
-    }))
+	sourceData.value.map((item, index) => ({
+		req: index + 1,
+		dateTime: new Date(item.timestamp).toISOString(),
+		type: item.protocol.toUpperCase(),
+		payload: item.fullId,
+		source: item.remoteAddress,
+	})),
 );
 
 // Gestion de la sélection de ligne
 const selectedRow = ref<Response | null>(null);
 
 const onRowClick = (event: { data: { req: number } }) => {
-  QuickSSRFBtnCount.value = 0;
-  QuickSSRFBtn.setCount(QuickSSRFBtnCount.value);
-  const selectedIndex = event.data.req - 1;
-  selectedRow.value = sourceData.value[selectedIndex];
-  cachedRow.value = selectedRow.value;
-  onSelectedData(selectedRow.value);
+	QuickSSRFBtnCount.value = 0;
+	QuickSSRFBtn.setCount(QuickSSRFBtnCount.value);
+	const selectedIndex = event.data.req - 1;
+	selectedRow.value = sourceData.value[selectedIndex];
+	cachedRow.value = selectedRow.value;
+	onSelectedData(selectedRow.value);
 };
 
 // Méthode appelée lors de la sélection d’une ligne
 const onSelectedData = (selectedData: Response | null) => {
-  responseEditorRef.value.getEditorView().dispatch({
-        changes: {
-          from: 0,
-          to: responseEditorRef.value.getEditorView().state.doc.length,
-          insert: selectedData?.rawResponse,
-        },
-      });
+	responseEditorRef.value.getEditorView().dispatch({
+		changes: {
+			from: 0,
+			to: responseEditorRef.value.getEditorView().state.doc.length,
+			insert: selectedData?.rawResponse,
+		},
+	});
 
-  requestEditorRef.value.getEditorView().dispatch({
-        changes: {
-          from: 0,
-          to: requestEditorRef.value.getEditorView().state.doc.length,
-          insert: selectedData?.rawRequest,
-        },
-      });
+	requestEditorRef.value.getEditorView().dispatch({
+		changes: {
+			from: 0,
+			to: requestEditorRef.value.getEditorView().state.doc.length,
+			insert: selectedData?.rawRequest,
+		},
+	});
 };
 
 // Lancer le service et écouter les interactions
 const onGenerateClick = async () => {
-  if (clientService === null) {
-    clientService = useClientService();
+	if (clientService === null) {
+		clientService = useClientService();
 
-    await clientService.start(
-        {
-          serverURL: "https://oast.site",
-          token: uuidv4(),
-          keepAliveInterval: 30000,
-        },
-        (interaction: any) => {
-          const resp: Response = parseDnsResponse(interaction);
-          addToSourceData(resp); // Ajouter à la source de données
-        }
-    );
-  }
-  const url = clientService.generateUrl()
-  await clipboard.copy(url);
-  sdk.window.showToast("Copy to clipboard.", {variant: "success"})
+		await clientService.start(
+			{
+				serverURL: "https://oast.site",
+				token: uuidv4(),
+				keepAliveInterval: 30000,
+			},
+			(interaction: any) => {
+				const resp: Response = parseDnsResponse(interaction);
+				addToSourceData(resp); // Ajouter à la source de données
+			},
+		);
+	}
+	const url = clientService.generateUrl();
+	await clipboard.copy(url);
+	sdk.window.showToast("Copy to clipboard.", { variant: "success" });
 };
 
 const onManualPooling = async () => {
-  clientService?.poll();
+	clientService?.poll();
 };
 const onClearData = async () => {
-  sourceData.value = [];
-  cachedRow.value = null;
-  responseEditorRef.value.getEditorView().dispatch({
-    changes: {
-      from: 0,
-      to: responseEditorRef.value.getEditorView().state.doc.length,
-      insert: '',
-    },
-  });
+	sourceData.value = [];
+	cachedRow.value = null;
+	responseEditorRef.value.getEditorView().dispatch({
+		changes: {
+			from: 0,
+			to: responseEditorRef.value.getEditorView().state.doc.length,
+			insert: "",
+		},
+	});
 
-  requestEditorRef.value.getEditorView().dispatch({
-    changes: {
-      from: 0,
-      to: requestEditorRef.value.getEditorView().state.doc.length,
-      insert: '',
-    },
-  });
-  if (QuickSSRFBtnCount.value > 0) {
-    QuickSSRFBtnCount.value = 0;
-    QuickSSRFBtn.setCount(QuickSSRFBtnCount.value);
-  }
+	requestEditorRef.value.getEditorView().dispatch({
+		changes: {
+			from: 0,
+			to: requestEditorRef.value.getEditorView().state.doc.length,
+			insert: "",
+		},
+	});
+	if (QuickSSRFBtnCount.value > 0) {
+		QuickSSRFBtnCount.value = 0;
+		QuickSSRFBtn.setCount(QuickSSRFBtnCount.value);
+	}
 };
 
 const onSupport = async () => {
-  window.open('https://github.com/caido-community/quickssrf', '_blank');
+	window.open("https://github.com/caido-community/quickssrf", "_blank");
 };
 
 onMounted(() => {
-  const responseEditor = sdk.ui.httpResponseEditor();
-  const requestEditor = sdk.ui.httpRequestEditor();
+	const responseEditor = sdk.ui.httpResponseEditor();
+	const requestEditor = sdk.ui.httpRequestEditor();
 
-  response.value.appendChild(responseEditor.getElement());
-  request.value.appendChild(requestEditor.getElement());
+	response.value.appendChild(responseEditor.getElement());
+	request.value.appendChild(requestEditor.getElement());
 
-  responseEditorRef.value = responseEditor;
-  requestEditorRef.value = requestEditor;
+	responseEditorRef.value = responseEditor;
+	requestEditorRef.value = requestEditor;
 });
 </script>
 

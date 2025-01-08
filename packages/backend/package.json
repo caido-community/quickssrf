@@ -4,8 +4,7 @@
   "type": "module",
   "types": "src/index.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "vite build"
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@caido/quickjs-types": "^0.8.3",
