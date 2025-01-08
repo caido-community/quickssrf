@@ -123,7 +123,7 @@ export const useLogic = () => {
     console.log(clientService);
     if (url) {
       await clipboard.copy(url);
-      sdk.window.showToast("Copy to clipboard.", { variant: "success" });
+      sdk.window.showToast("Copied URL to clipboard.", { variant: "success" });
     }
   };
 

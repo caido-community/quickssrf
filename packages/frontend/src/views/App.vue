@@ -25,48 +25,41 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col gap-4">
+  <div class="h-full flex flex-col gap-2">
     <!-- Top Pane -->
     <div
-      id="ici"
       class="w-full flex-1 min-h-0 rounded-[0.25rem] shadow-md bg-surface-0 dark:bg-surface-800 text-surface-700 dark:text-surface-0"
     >
       <div class="h-full flex flex-col">
         <!-- Header Section -->
-        <div class="content-center mb-4">
-          <h3 class="text-2xl ml-1">QuickSSRF</h3>
+        <div class="content-center p-4 flex items-center justify-between">
+          <h3 class="text-xl">QuickSSRF</h3>
         </div>
 
         <!-- Content Section -->
         <div class="flex flex-col h-full min-h-0">
-          <!-- Actions Section -->
-          <div class="flex-none flex items-center justify-between mb-4 m-4">
-            <!-- Left-aligned Buttons -->
-            <div class="flex gap-4 m-4">
-              <Button
-                label="Generate Link"
-                style="width: 200px"
-                @click="onGenerateClick"
-              />
-              <Button label="Poll" style="width: 200px" @click="onManualPoll" />
-              <Button
-                label="Clear Data"
-                style="width: 200px"
-                @click="onClearData"
-              />
-            </div>
-            <!-- Right-aligned Button -->
-            <button
-              id="star-project"
-              class="p-button p-button-rounded"
-              @click="onSupport"
-            >
-              ⭐ STAR ON GITHUB
-            </button>
-          </div>
           <!-- Request Logs Section -->
-          <div class="flex-1 min-h-5">
-            <h3 class="text-lg mb-2">Request Logs</h3>
+          <div class="flex-1">
+            <div class="flex items-center justify-between p-4 pt-0">
+              <!-- Actions Section -->
+              <div class="flex-1 flex items-center justify-between">
+                <!-- Left-aligned Buttons -->
+                <div class="flex gap-2">
+                  <Button label="Generate URL" @click="onGenerateClick" />
+                  <Button severity="contrast" label="Refresh" icon="fas fa-sync" @click="onManualPoll" />
+                  <Button severity="contrast" label="Clear" @click="onClearData" />
+                </div>
+
+                <!-- Right-aligned Button -->
+                <Button
+                  label="STAR ON GITHUB"
+                  severity="contrast"
+                  icon="fas fa-star"
+                  @click="onSupport"
+                />
+              </div>
+            </div>
+
             <!-- DataTable directly scrollable -->
             <DataTable
               v-model:selection="selectedRow"
@@ -83,6 +76,13 @@ onMounted(() => {
               <Column field="type" header="Type" sortable />
               <Column field="payload" header="Payload" sortable />
               <Column field="source" header="Source" sortable />
+
+              <template #empty>
+                <div class="flex flex-col justify-center items-center gap-2">
+                  <h3 class="text-surface-300 text-xl">Request Logs</h3>
+                  <p class="text-surface-300">No data found</p>
+                </div>
+              </template>
             </DataTable>
           </div>
         </div>
@@ -90,7 +90,7 @@ onMounted(() => {
     </div>
 
     <!-- Horizontal Split Below -->
-    <div class="w-full flex flex-1 gap-4 overflow-hidden">
+    <div class="w-full flex flex-1 gap-2 overflow-hidden">
       <!-- Request Component -->
       <div ref="requestEl" class="h-full w-1/2"></div>
       <!-- Response Component -->
