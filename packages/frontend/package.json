@@ -3,8 +3,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "typecheck": "vue-tsc --noEmit",
-    "build": "vite build"
+    "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
     "@caido/primevue": "0.1.1",
