@@ -1,17 +1,18 @@
-import { defineConfig } from "@caido-community/dev";
-import tailwindcss from "tailwindcss";
-import prefixwrap from "postcss-prefixwrap";
-// @ts-expect-error 
-import tailwindPrimeui from "tailwindcss-primeui";
-import tailwindCaido from "@caido/tailwindcss";
-import vue from "@vitejs/plugin-vue";
 import path from "path";
+
+import tailwindCaido from "@caido/tailwindcss";
+import { defineConfig } from "@caido-community/dev";
+import vue from "@vitejs/plugin-vue";
+import prefixwrap from "postcss-prefixwrap";
+import tailwindcss from "tailwindcss";
+// @ts-expect-error
+import tailwindPrimeui from "tailwindcss-primeui";
 
 const id = "quickssrf";
 export default defineConfig({
   id,
   name: "QuickSSRF",
-  version: "0.1.6",
+  version: "0.1.7",
   description: "Real-time Interaction Monitoring with Interactsh",
   author: {
     name: "w2xim3",
@@ -29,8 +30,8 @@ export default defineConfig({
         plugins: [vue()],
         build: {
           rollupOptions: {
-            external: ['@caido/frontend-sdk']
-          }
+            external: ["@caido/frontend-sdk"],
+          },
         },
         resolve: {
           alias: [
@@ -46,8 +47,8 @@ export default defineConfig({
               // This plugin injects the necessary Tailwind classes
               tailwindcss({
                 content: [
-                  './packages/frontend/src/**/*.{vue,ts}',
-                  './node_modules/@caido/primevue/dist/primevue.mjs'
+                  "./packages/frontend/src/**/*.{vue,ts}",
+                  "./node_modules/@caido/primevue/dist/primevue.mjs",
                 ],
                 // Check the [data-mode="dark"] attribute on the <html> element to determine the mode
                 // This attribute is set in the Caido core application
@@ -66,8 +67,8 @@ export default defineConfig({
               prefixwrap(`#plugin--${id}`),
             ],
           },
-        }
-      }
+        },
+      },
     },
     {
       id: "quickssrf-backend",
