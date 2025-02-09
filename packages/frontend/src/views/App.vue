@@ -39,15 +39,15 @@ onMounted(() => {
         <!-- Content Section -->
         <div class="flex flex-col h-full min-h-0">
           <!-- Request Logs Section -->
-          <div class="flex-1">
+          <div class="flex-1 min-h-0 overflow-auto">
             <div class="flex items-center justify-between p-4 pt-0">
               <!-- Actions Section -->
               <div class="flex-1 flex items-center justify-between">
                 <!-- Left-aligned Buttons -->
                 <div class="flex gap-2">
-                  <Button label="Generate URL" @click="onGenerateClick" />
-                  <Button severity="contrast" label="Refresh" icon="fas fa-sync" @click="onManualPoll" />
-                  <Button severity="contrast" label="Clear" @click="onClearData" />
+                  <Button label="Generate URL" style="width: 200px" @click="onGenerateClick" />
+                  <Button severity="contrast" style="width: 200px" label="Refresh" icon="fas fa-sync" @click="onManualPoll" />
+                  <Button severity="contrast" style="width: 200px" label="Clear" @click="onClearData" />
                 </div>
 
                 <!-- Right-aligned Button -->
@@ -56,10 +56,11 @@ onMounted(() => {
                   severity="contrast"
                   icon="fas fa-star"
                   @click="onSupport"
+                  iconClass="text-yellow-400"
+                  style="width: 200px"
                 />
               </div>
             </div>
-
             <!-- DataTable directly scrollable -->
             <DataTable
               v-model:selection="selectedRow"
