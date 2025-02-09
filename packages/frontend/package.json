@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "@caido/primevue": "0.1.1",
-    "@caido/sdk-frontend": "0.44.0",
+    "@caido/sdk-frontend": "0.45.1",
     "@fortawesome/fontawesome-free": "6.6.0",
     "@vueuse/core": "10.11.1",
     "axios": "^1.7.8",
@@ -18,7 +18,7 @@
     "vue": "3.4.37"
   },
   "devDependencies": {
-    "@caido/sdk-backend": "0.44.0",
+    "@caido/sdk-backend": "0.45.1",
     "@codemirror/view": "6.28.1",
     "@types/crypto-js": "^4.2.2",
     "backend": "workspace:*",
