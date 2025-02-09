@@ -12,7 +12,7 @@ const id = "quickssrf";
 export default defineConfig({
   id,
   name: "QuickSSRF",
-  version: "0.1.7",
+  version: "0.1.8",
   description: "Real-time Interaction Monitoring with Interactsh",
   author: {
     name: "w2xim3",

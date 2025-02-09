@@ -38,9 +38,7 @@ onMounted(() => {
 
         <!-- Content Section -->
         <div class="flex flex-col h-full min-h-0">
-          <!-- Request Logs Section -->
-          <div class="flex-1 min-h-0 overflow-auto">
-            <div class="flex items-center justify-between p-4 pt-0">
+          <div class="flex items-center justify-between p-4 pt-0">
               <!-- Actions Section -->
               <div class="flex-1 flex items-center justify-between">
                 <!-- Left-aligned Buttons -->
@@ -61,6 +59,9 @@ onMounted(() => {
                 />
               </div>
             </div>
+          <!-- Request Logs Section -->
+          <div class="flex-1 min-h-0 overflow-auto">
+
             <!-- DataTable directly scrollable -->
             <DataTable
               v-model:selection="selectedRow"
@@ -68,7 +69,7 @@ onMounted(() => {
               selection-mode="single"
               data-key="req"
               scrollable
-              scroll-height="90%"
+              scroll-height="100%"
               class="w-full h-full"
               @row-click="onRowClick"
             >
