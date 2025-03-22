@@ -6,23 +6,23 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@caido/primevue": "0.1.1",
-    "@caido/sdk-frontend": "0.45.1",
-    "@fortawesome/fontawesome-free": "6.6.0",
-    "@vueuse/core": "10.11.1",
-    "axios": "^1.7.8",
-    "pinia": "2.2.1",
-    "primevue": "4.1.0",
+    "@caido/primevue": "0.1.8",
+    "@caido/sdk-frontend": "0.47.1",
+    "@fortawesome/fontawesome-free": "6.7.2",
+    "@vueuse/core": "13.0.0",
+    "axios": "^1.8.4",
+    "pinia": "3.0.1",
+    "primevue": "4.3.2",
     "shared": "workspace:*",
-    "uuid": "^11.0.3",
-    "vue": "3.4.37"
+    "uuid": "^11.1.0",
+    "vue": "3.5.13"
   },
   "devDependencies": {
-    "@caido/sdk-backend": "0.45.1",
-    "@codemirror/view": "6.28.1",
+    "@caido/sdk-backend": "0.47.1",
+    "@codemirror/view": "6.36.4",
     "@types/crypto-js": "^4.2.2",
     "backend": "workspace:*",
     "crypto-js": "^4.2.0",
-    "vue-tsc": "2.0.29"
+    "vue-tsc": "2.2.8"
   }
 }

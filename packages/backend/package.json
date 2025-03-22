@@ -7,13 +7,12 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@caido/quickjs-types": "^0.16.1",
-    "@caido/sdk-backend": "0.45.1",
-    "@types/node": "^22.9.0",
+    "@caido/quickjs-types": "^0.17.2",
+    "@caido/sdk-backend": "0.47.1",
+    "@types/node": "^22.13.11",
     "shared": "workspace:*"
   },
   "dependencies": {
-    "@caido/quickjs-types": "^0.16.1",
     "shared": "workspace:*"
   }
 }
