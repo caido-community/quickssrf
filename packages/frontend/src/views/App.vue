@@ -2,6 +2,8 @@
 import Button from "primevue/button";
 import Column from "primevue/column";
 import DataTable from "primevue/datatable";
+import Splitter from "primevue/splitter";
+import SplitterPanel from "primevue/splitterpanel";
 import { onMounted } from "vue";
 
 import { useLogic } from "./useLogic";
@@ -23,29 +25,43 @@ onMounted(() => {
   initializeEditors();
 });
 </script>
-
 <template>
-  <div class="h-full flex flex-col gap-2">
-    <!-- Top Pane -->
-    <div
-      class="w-full flex-1 min-h-0 rounded-[0.25rem] shadow-md bg-surface-0 dark:bg-surface-800 text-surface-700 dark:text-surface-0"
-    >
-      <div class="h-full flex flex-col">
-        <!-- Header Section -->
-        <div class="content-center p-4 flex items-center justify-between">
-          <h3 class="text-xl">QuickSSRF</h3>
-        </div>
+  <Splitter class="h-full" layout="vertical">
+    <SplitterPanel class="flex-1 min-h-0">
+      <div
+        class="h-full rounded-[0.25rem] shadow-md bg-surface-0 dark:bg-surface-800 text-surface-700 dark:text-surface-0"
+      >
+        <div class="h-full flex flex-col">
+          <!-- Header Section -->
+          <div class="content-center p-4 flex items-center justify-between">
+            <h3 class="text-xl">QuickSSRF</h3>
+          </div>
 
-        <!-- Content Section -->
-        <div class="flex flex-col h-full min-h-0">
-          <div class="flex items-center justify-between p-4 pt-0">
+          <!-- Content Section -->
+          <div class="flex flex-col h-full min-h-0">
+            <div class="flex items-center justify-between p-4 pt-0">
               <!-- Actions Section -->
               <div class="flex-1 flex items-center justify-between">
                 <!-- Left-aligned Buttons -->
                 <div class="flex gap-2">
-                  <Button label="Generate URL" style="width: 200px" @click="onGenerateClick" />
-                  <Button severity="contrast" style="width: 200px" label="Refresh" icon="fas fa-sync" @click="onManualPoll" />
-                  <Button severity="contrast" style="width: 200px" label="Clear" @click="onClearData" />
+                  <Button
+                    label="Generate URL"
+                    style="width: 200px"
+                    @click="onGenerateClick"
+                  />
+                  <Button
+                    severity="contrast"
+                    style="width: 200px"
+                    label="Refresh"
+                    icon="fas fa-sync"
+                    @click="onManualPoll"
+                  />
+                  <Button
+                    severity="contrast"
+                    style="width: 200px"
+                    label="Clear"
+                    @click="onClearData"
+                  />
                 </div>
 
                 <!-- Right-aligned Button -->
@@ -59,44 +75,50 @@ onMounted(() => {
                 />
               </div>
             </div>
-          <!-- Request Logs Section -->
-          <div class="flex-1 min-h-0 overflow-auto">
 
-            <!-- DataTable directly scrollable -->
-            <DataTable
-              v-model:selection="selectedRow"
-              :value="tableData"
-              selection-mode="single"
-              data-key="req"
-              scrollable
-              scroll-height="100%"
-              class="w-full h-full"
-              @row-click="onRowClick"
-            >
-              <Column field="req" header="Req #" sortable />
-              <Column field="dateTime" header="Date-Time" sortable />
-              <Column field="type" header="Type" sortable />
-              <Column field="payload" header="Payload" sortable />
-              <Column field="source" header="Source" sortable />
+            <!-- Request Logs Section -->
+            <div class="flex-1 min-h-0 overflow-auto">
+              <!-- DataTable directly scrollable -->
+              <DataTable
+                v-model:selection="selectedRow"
+                :value="tableData"
+                selection-mode="single"
+                data-key="req"
+                scrollable
+                scroll-height="100%"
+                class="w-full h-full"
+                @row-click="onRowClick"
+                stripedRows
+              >
+                <Column field="req" header="Req #" sortable />
+                <Column field="dateTime" header="Date-Time" sortable />
+                <Column field="type" header="Type" sortable />
+                <Column field="payload" header="Payload" sortable />
+                <Column field="source" header="Source" sortable />
 
-              <template #empty>
-                <div class="flex flex-col justify-center items-center gap-2">
-                  <h3 class="text-surface-300 text-xl">Request Logs</h3>
-                  <p class="text-surface-300">No data found</p>
-                </div>
-              </template>
-            </DataTable>
+                <template #empty>
+                  <div
+                    class="flex flex-col justify-center items-center h-full w-full"
+                  >
+                    <p class="text-surface-300 text-center">No data found</p>
+                  </div>
+                </template>
+              </DataTable>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </SplitterPanel>
 
-    <!-- Horizontal Split Below -->
-    <div class="w-full flex flex-1 gap-2 overflow-hidden">
-      <!-- Request Component -->
-      <div ref="requestEl" class="h-full w-1/2"></div>
-      <!-- Response Component -->
-      <div ref="responseEl" class="h-full w-1/2"></div>
-    </div>
-  </div>
+    <SplitterPanel class="flex-1">
+      <Splitter class="h-full">
+        <SplitterPanel class="min-h-0">
+          <div ref="requestEl" class="h-full"></div>
+        </SplitterPanel>
+        <SplitterPanel class="min-h-0">
+          <div ref="responseEl" class="h-full"></div>
+        </SplitterPanel>
+      </Splitter>
+    </SplitterPanel>
+  </Splitter>
 </template>
