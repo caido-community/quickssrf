@@ -15,8 +15,9 @@ export const useLogic = () => {
   const cachedRow = ref<Response | undefined>(undefined);
   let clientService: ReturnType<typeof useClientService> | undefined =
     undefined;
-  // Source de données réactive
-  const sourceData = ref<Response[]>([]); // Le tableau stockant les données
+
+  // Reactive data source
+  const sourceData = ref<Response[]>([]); // The array storing the data
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const parseDnsResponse = (json: any): Response => {
@@ -25,8 +26,8 @@ export const useLogic = () => {
       uniqueId: json["unique-id"],
       fullId: json["full-id"],
       qType: json["q-type"],
-      rawRequest: json["raw-request"],
-      rawResponse: json["raw-response"],
+      rawRequest: json["raw-request"].split("\n").join("\r\n"),
+      rawResponse: json["raw-response"].split("\n").join("\r\n"),
       remoteAddress: json["remote-address"],
       timestamp: json.timestamp,
     };
@@ -52,14 +53,14 @@ export const useLogic = () => {
   }
   eventBus.addEventListener("updateSelected", handleUpdateSelected);
 
-  // Ajouter les données de `parseDnsResponse` à la source
+  // Add `parseDnsResponse` data to the source
   const addToSourceData = (response: Response) => {
     QuickSSRFBtnCount.value += 1;
     QuickSSRFBtn.setCount(QuickSSRFBtnCount.value);
     sourceData.value.push(response);
   };
 
-  // Mise à jour des données du tableau en temps réel
+  // Updating table data in real time
   const tableData = computed(() =>
     sourceData.value.map((item, index) => ({
       req: index + 1,
@@ -70,7 +71,7 @@ export const useLogic = () => {
     })),
   );
 
-  // Gestion de la sélection de ligne
+  // Line selection management
   const selectedRow = ref<Response | undefined>(undefined);
 
   const onRowClick = (event: { data: { req: number } }) => {
@@ -82,7 +83,7 @@ export const useLogic = () => {
     onSelectedData(selectedRow.value);
   };
 
-  // Méthode appelée lors de la sélection d’une ligne
+  // Method called when a row is selected
   const onSelectedData = (selectedData: Response | undefined) => {
     responseEditorRef.value.getEditorView().dispatch({
       changes: {
@@ -101,7 +102,7 @@ export const useLogic = () => {
     });
   };
 
-  // Lancer le service et écouter les interactions
+  // Launch the service and listen for interactions
   const clipboard = useClipboard();
   const onGenerateClick = async () => {
     if (!clientService) {
@@ -115,7 +116,7 @@ export const useLogic = () => {
         },
         (interaction: Record<string, unknown>) => {
           const resp = parseDnsResponse(interaction);
-          addToSourceData(resp); // Ajouter à la source de données
+          addToSourceData(resp); // Add to the data source
         },
       );
     }
