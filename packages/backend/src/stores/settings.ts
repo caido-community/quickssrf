@@ -1,8 +1,9 @@
-import type { SDK } from "caido:plugin";
-import * as fs from "fs";
 import crypto from "crypto";
+import * as fs from "fs";
 import * as path from "path";
-import { Settings } from "shared";
+
+import type { SDK } from "caido:plugin";
+import { type Settings } from "shared";
 
 const defaultSettings = {
   serverURL: "https://oast.site",

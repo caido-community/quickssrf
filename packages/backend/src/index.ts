@@ -1,5 +1,10 @@
 import type { DefineAPI, SDK } from "caido:plugin";
-import { getSettings, updateSettings, resetSettings } from "./services/settings";
+
+import {
+  getSettings,
+  resetSettings,
+  updateSettings,
+} from "./services/settings";
 
 export type API = DefineAPI<{
   getSettings: typeof getSettings;

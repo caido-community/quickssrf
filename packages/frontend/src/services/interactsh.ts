@@ -1,9 +1,9 @@
 import axios, { type AxiosInstance } from "axios";
 import { ref } from "vue";
 
-import { generateRandomString } from "@/utils/utils";
 import { useCryptoService } from "@/services/crypto";
 import { tryCatch } from "@/utils/try-catch";
+import { generateRandomString } from "@/utils/utils";
 
 /**
  * Enum representing the possible states of the Interactsh client
@@ -73,13 +73,13 @@ export const useClientService = () => {
     const { data, error } = await tryCatch(
       httpClient.post(url, payload, {
         headers: { "Content-Type": "application/json" },
-      })
+      }),
     );
 
     if (error) {
       console.error("Registration error:", error);
       throw new Error(
-        "Registration failed, please check your server URL and token"
+        "Registration failed, please check your server URL and token",
       );
     }
 
@@ -95,7 +95,7 @@ export const useClientService = () => {
    * @param callback Function to call for each interaction received
    */
   const getInteractions = async (
-    callback: (interaction: Record<string, unknown>) => void
+    callback: (interaction: Record<string, unknown>) => void,
   ) => {
     if (!correlationID.value || !secretKey.value || !serverURL.value) {
       throw new Error("Missing required client configuration");
@@ -103,7 +103,7 @@ export const useClientService = () => {
 
     const url = new URL(
       `/poll?id=${correlationID.value}&secret=${secretKey.value}`,
-      serverURL.value.toString()
+      serverURL.value.toString(),
     ).toString();
 
     const { data, error } = await tryCatch(httpClient.get(url));
@@ -123,7 +123,7 @@ export const useClientService = () => {
     if (data?.data?.data && Array.isArray(data.data.data)) {
       for (const item of data.data.data) {
         const { data: decryptedData, error: decryptError } = await tryCatch(
-          cryptoService.decryptMessage(data.data.aes_key, item)
+          cryptoService.decryptMessage(data.data.aes_key, item),
         );
 
         if (decryptError) {
@@ -148,12 +148,14 @@ export const useClientService = () => {
    */
   const initialize = async (
     options: Options,
-    interactionCallbackParam?: (interaction: Record<string, unknown>) => void
+    interactionCallbackParam?: (interaction: Record<string, unknown>) => void,
   ) => {
-    httpClient = options.httpClient || axios.create({
-      timeout: 10000,
-      headers: options.token ? { Authorization: options.token } : {}
-    });
+    httpClient =
+      options.httpClient ||
+      axios.create({
+        timeout: 10000,
+        headers: options.token ? { Authorization: options.token } : {},
+      });
     token.value = options.token;
 
     correlationID.value =
@@ -194,7 +196,7 @@ export const useClientService = () => {
    * @param callback Function to call for each interaction received
    */
   const startPolling = (
-    callback: (interaction: Record<string, unknown>) => void
+    callback: (interaction: Record<string, unknown>) => void,
   ) => {
     if (state.value === State.Polling) {
       throw new Error("Client is already polling");
@@ -212,7 +214,7 @@ export const useClientService = () => {
           throw new Error("Polling error");
         }
         await new Promise((resolve) =>
-          setTimeout(resolve, pollingInterval.value)
+          setTimeout(resolve, pollingInterval.value),
         );
       }
     };
@@ -255,7 +257,7 @@ export const useClientService = () => {
   const setRefreshTimeSecond = (seconds: number) => {
     if (seconds < 5 || seconds > 3600) {
       throw new Error(
-        "The polling interval must be between 5 and 3600 seconds"
+        "The polling interval must be between 5 and 3600 seconds",
       );
     }
     pollingInterval.value = seconds * 1000;
@@ -297,8 +299,8 @@ export const useClientService = () => {
           correlationID: correlationID.value,
           secretKey: secretKey.value,
         },
-        { headers: { "Content-Type": "application/json" } }
-      )
+        { headers: { "Content-Type": "application/json" } },
+      ),
     );
 
     if (error) {
@@ -320,7 +322,7 @@ export const useClientService = () => {
    */
   const start = async (
     options: Options,
-    interactionCallbackParam?: (interaction: Record<string, unknown>) => void
+    interactionCallbackParam?: (interaction: Record<string, unknown>) => void,
   ) => {
     await initialize(options, interactionCallbackParam);
   };
@@ -341,7 +343,7 @@ export const useClientService = () => {
    * @returns A unique Interactsh URL and its unique ID
    */
   const generateUrl = (
-    incrementNumber = 0
+    incrementNumber = 0,
   ): { url: string; uniqueId: string } => {
     if (
       state.value === State.Closed ||

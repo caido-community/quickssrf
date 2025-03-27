@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import DataTable from "primevue/datatable";
-import Column from "primevue/column";
 import Button from "primevue/button";
-import { useUIStore } from "@/stores/uiStore";
-import { useInteractionStore } from "@/stores/interactionStore";
+import Column from "primevue/column";
+import DataTable from "primevue/datatable";
+
 import { useLogic } from "@/composables/useLogic";
+import { useInteractionStore } from "@/stores/interactionStore";
+import { useUIStore } from "@/stores/uiStore";
 
 const uiStore = useUIStore();
 const interactionStore = useInteractionStore();
@@ -13,8 +14,8 @@ const { handleGenerateClick, handleManualPoll } = useLogic();
 
 <template>
   <DataTable
-    :value="interactionStore.tableData"
     v-model:selection="uiStore.selectedRow"
+    :value="interactionStore.tableData"
     selection-mode="single"
     data-key="req"
     scrollable
@@ -59,16 +60,16 @@ const { handleGenerateClick, handleManualPoll } = useLogic();
           label="Generate URL"
           icon="fas fa-link"
           size="small"
-          @click="handleGenerateClick"
           :loading="uiStore.isGeneratingUrl"
+          @click="handleGenerateClick"
         />
         <Button
           v-else
           label="Refresh"
           icon="fas fa-sync"
           size="small"
-          @click="handleManualPoll"
           :loading="uiStore.isPolling"
+          @click="handleManualPoll"
         />
       </div>
     </template>

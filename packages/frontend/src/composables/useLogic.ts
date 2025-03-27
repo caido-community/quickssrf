@@ -1,8 +1,9 @@
+import { ref, watch } from "vue";
+
 import { useSDK } from "@/plugins/sdk";
 import { useEditorStore } from "@/stores/editorStore";
 import { useInteractionStore } from "@/stores/interactionStore";
 import { useUIStore } from "@/stores/uiStore";
-import { ref, watch } from "vue";
 
 export function useLogic() {
   const interactionStore = useInteractionStore();

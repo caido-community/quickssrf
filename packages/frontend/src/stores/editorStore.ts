@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
+
 import type { Interaction } from "@/types";
 
 export const useEditorStore = defineStore("editors", () => {

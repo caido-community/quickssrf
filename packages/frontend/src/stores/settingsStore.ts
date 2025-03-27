@@ -1,7 +1,9 @@
-import { useSDK } from "@/plugins/sdk";
 import { defineStore } from "pinia";
 import { ref } from "vue";
+
 import { useInteractionStore } from "./interactionStore";
+
+import { useSDK } from "@/plugins/sdk";
 import { useUIStore } from "@/stores/uiStore";
 
 export const useSettingsStore = defineStore("settings", () => {
@@ -38,20 +40,26 @@ export const useSettingsStore = defineStore("settings", () => {
         token: token.value,
         pollingInterval: pollingInterval.value,
       });
+      ``;
 
       if (serverURLChanged) {
         await interactionStore.resetClientService();
         interactionStore.clearData();
         uiStore.clearUI();
-        sdk.window.showToast("Server URL changed. Please generate a new URL.", { variant: "info" });
+        sdk.window.showToast(
+          "Server URL changed. Please generat`ze a new URL.",
+          { variant: "info" },
+        );
       } else {
-        const client = await interactionStore.getClientService();
+        const client = interactionStore.getClientService();
         if (client) {
           client.updatePollingInterval(pollingInterval.value);
         }
       }
 
-      sdk.window.showToast("Settings saved successfully", { variant: "success" });
+      sdk.window.showToast("Settings saved successfully", {
+        variant: "success",
+      });
       isDialogVisible.value = false;
     } catch (error) {
       console.error("Failed to save settings:", error);
@@ -73,9 +81,13 @@ export const useSettingsStore = defineStore("settings", () => {
         await interactionStore.resetClientService();
         interactionStore.clearData();
         uiStore.clearGeneratedUrl();
-        sdk.window.showToast("Settings reset. Please generate a new URL.", { variant: "info" });
+        sdk.window.showToast("Settings reset. Please generate a new URL.", {
+          variant: "info",
+        });
       } else {
-        sdk.window.showToast("Settings reset successfully", { variant: "success" });
+        sdk.window.showToast("Settings reset successfully", {
+          variant: "success",
+        });
       }
     } catch (error) {
       console.error("Failed to reset settings:", error);

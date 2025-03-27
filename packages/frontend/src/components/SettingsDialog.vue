@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import Dialog from "primevue/dialog";
-import InputText from "primevue/inputtext";
-import InputNumber from "primevue/inputnumber";
 import Button from "primevue/button";
+import Dialog from "primevue/dialog";
+import InputNumber from "primevue/inputnumber";
+import InputText from "primevue/inputtext";
+import { onBeforeUnmount, onMounted, ref } from "vue";
+
 import { useSettingsStore } from "@/stores/settingsStore";
-import { onMounted, ref, onBeforeUnmount } from "vue";
 
 const settingsStore = useSettingsStore();
 const showToken = ref(false);
@@ -66,9 +67,9 @@ const handleKeyDown = (event: KeyboardEvent) => {
           />
           <Button
             :icon="showToken ? 'fas fa-eye-slash' : 'fas fa-eye'"
-            @click="toggleTokenVisibility"
             class="ml-2"
             aria-label="Toggle token visibility"
+            @click="toggleTokenVisibility"
           />
         </div>
       </div>
@@ -92,16 +93,16 @@ const handleKeyDown = (event: KeyboardEvent) => {
         <Button
           label="Reset"
           severity="danger"
-          @click="settingsStore.resetSettings"
           icon="fas fa-undo"
           class="px-3 py-2 text-sm font-medium"
+          @click="settingsStore.resetSettings"
         />
         <Button
           label="Save"
-          @click="settingsStore.saveSettings"
           icon="fas fa-save"
           :loading="settingsStore.isSaving"
           class="px-3 py-2 text-sm font-medium"
+          @click="settingsStore.saveSettings"
         />
       </div>
     </template>

@@ -1,12 +1,15 @@
-export const generateRandomString = (length: number, lettersOnly: boolean = false) => {
-  let characters = '';
+export const generateRandomString = (
+  length: number,
+  lettersOnly: boolean = false
+) => {
+  let characters = "";
   if (lettersOnly) {
-    characters = 'abcdefghijklmnopqrstuvwxyz';
+    characters = "abcdefghijklmnopqrstuvwxyz";
   } else {
-    characters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    characters = "abcdefghijklmnopqrstuvwxyz0123456789";
   }
-  let result = '';
-  for (let i = 0; i < length; i+=1) {
+  let result = "";
+  for (let i = 0; i < length; i += 1) {
     result += characters.charAt(Math.floor(Math.random() * characters.length));
   }
   return result;

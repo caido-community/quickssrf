@@ -1,7 +1,8 @@
-import { useSDK } from "@/plugins/sdk";
 import { useClipboard } from "@vueuse/core";
 import { defineStore } from "pinia";
 import { ref } from "vue";
+
+import { useSDK } from "@/plugins/sdk";
 import type { Interaction } from "@/types";
 
 export const useUIStore = defineStore("ui", () => {

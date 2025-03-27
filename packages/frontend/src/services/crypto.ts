@@ -1,12 +1,12 @@
-import { arrayBufferToBase64, base64ToArrayBuffer } from "@/utils/utils";
 import * as CryptoJS from "crypto-js";
 import { defineStore } from "pinia";
+
+import { arrayBufferToBase64, base64ToArrayBuffer } from "@/utils/utils";
 
 export const useCryptoService = defineStore("services.crypto", () => {
   let privKey: CryptoKey | undefined = undefined;
   let pubKey: CryptoKey | undefined = undefined;
-  let keyInitializationPromise: Promise<void>;
-  keyInitializationPromise = initializeRSAKeys();
+  const keyInitializationPromise: Promise<void> = initializeRSAKeys();
 
   async function initializeRSAKeys(): Promise<void> {
     const keyPair = await window.crypto.subtle.generateKey(

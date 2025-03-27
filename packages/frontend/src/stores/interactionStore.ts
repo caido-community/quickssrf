@@ -3,17 +3,17 @@ import { computed, ref } from "vue";
 
 import { sidebarItem } from "@/index";
 import { useClientService } from "@/services/interactsh";
-import type { Interaction } from "@/types";
-import { useUIStore } from "@/stores/uiStore";
-import { tryCatch } from "@/utils/try-catch";
 import { useSettingsStore } from "@/stores/settingsStore";
+import { useUIStore } from "@/stores/uiStore";
+import type { Interaction } from "@/types";
+import { tryCatch } from "@/utils/try-catch";
 
 export const useInteractionStore = defineStore("interaction", () => {
   const uiStore = useUIStore();
 
   const data = ref<Interaction[]>([]);
   const clientService = ref<ReturnType<typeof useClientService> | undefined>(
-    undefined,
+    undefined
   );
 
   const tableData = computed(() => {
@@ -28,15 +28,22 @@ export const useInteractionStore = defineStore("interaction", () => {
   });
 
   function parseData(json: Record<string, unknown>): Interaction {
+    const toString = (value: unknown): string => {
+      if (typeof value === "string") {
+        return value;
+      }
+      return String(value);
+    };
+
     const result: Interaction = {
-      protocol: String(json.protocol || "unknown"),
-      uniqueId: String(json["unique-id"] || ""),
-      fullId: String(json["full-id"] || ""),
-      qType: String(json["q-type"] || ""),
-      rawRequest: String(json["raw-request"] || ""),
-      rawResponse: String(json["raw-response"] || ""),
-      remoteAddress: String(json["remote-address"] || ""),
-      timestamp: String(json.timestamp || new Date().toISOString()),
+      protocol: toString(json.protocol ?? "unknown"),
+      uniqueId: toString(json["unique-id"] ?? ""),
+      fullId: toString(json["full-id"] ?? ""),
+      qType: toString(json["q-type"] ?? ""),
+      rawRequest: toString(json["raw-request"] ?? ""),
+      rawResponse: toString(json["raw-response"] ?? ""),
+      remoteAddress: toString(json["remote-address"] ?? ""),
+      timestamp: toString(json.timestamp ?? new Date().toISOString()),
       httpPath: "",
     };
 
@@ -86,8 +93,8 @@ export const useInteractionStore = defineStore("interaction", () => {
         (interaction: Record<string, unknown>) => {
           const resp = parseData(interaction);
           addToData(resp);
-        },
-      ),
+        }
+      )
     );
 
     if (error) {
@@ -110,7 +117,7 @@ export const useInteractionStore = defineStore("interaction", () => {
     }
   }
 
-  async function getClientService() {
+  function getClientService() {
     return clientService.value;
   }
 

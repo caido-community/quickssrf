@@ -7,8 +7,9 @@ import { SDKPlugin } from "./plugins/sdk";
 import "./styles/index.css";
 import type { FrontendSDK } from "./types";
 import App from "./views/App.vue";
-import { useUIStore } from "@/stores/uiStore";
+
 import { useEditorStore } from "@/stores/editorStore";
+import { useUIStore } from "@/stores/uiStore";
 
 const eventBus = new EventTarget();
 export default eventBus;

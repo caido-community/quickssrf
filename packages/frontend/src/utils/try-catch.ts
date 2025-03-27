@@ -1,11 +1,11 @@
 // Types for the result object with discriminated union
 type Success<T> = {
   data: T;
-  error: null;
+  error: undefined;
 };
 
 type Failure<E> = {
-  data: null;
+  data: undefined;
   error: E;
 };
 
@@ -17,8 +17,8 @@ export async function tryCatch<T, E = Error>(
 ): Promise<Result<T, E>> {
   try {
     const data = await promise;
-    return { data, error: null };
+    return { data, error: undefined };
   } catch (error) {
-    return { data: null, error: error as E };
+    return { data: undefined, error: error as E };
   }
 }
