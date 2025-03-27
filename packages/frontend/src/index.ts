@@ -1,23 +1,25 @@
 import { Classic } from "@caido/primevue";
 import { createPinia } from "pinia";
 import PrimeVue from "primevue/config";
-import { createApp, ref } from "vue";
+import { createApp } from "vue";
 
 import { SDKPlugin } from "./plugins/sdk";
 import "./styles/index.css";
 import type { FrontendSDK } from "./types";
 import App from "./views/App.vue";
+import { useUIStore } from "@/stores/uiStore";
+import { useEditorStore } from "@/stores/editorStore";
 
 const eventBus = new EventTarget();
 export default eventBus;
 
 // This is the entry point for the frontend plugin
-export let QuickSSRFBtn: ReturnType<FrontendSDK["sidebar"]["registerItem"]>;
-export const QuickSSRFBtnCount = ref(0);
+export let sidebarItem: ReturnType<FrontendSDK["sidebar"]["registerItem"]>;
 export const init = (sdk: FrontendSDK) => {
   const app = createApp(App);
   const pinia = createPinia();
   app.use(pinia);
+
   // Load the PrimeVue component library
   app.use(PrimeVue, {
     unstyled: true,
@@ -33,7 +35,6 @@ export const init = (sdk: FrontendSDK) => {
     height: "100%",
     width: "100%",
   });
-  const event = new CustomEvent("updateSelected");
 
   /*
    * Set the ID of the root element
@@ -53,14 +54,16 @@ export const init = (sdk: FrontendSDK) => {
   sdk.navigation.addPage("/quickssrf", {
     body: root,
     onEnter: () => {
-      QuickSSRFBtnCount.value = 0;
-      QuickSSRFBtn.setCount(QuickSSRFBtnCount.value);
-      eventBus.dispatchEvent(event);
+      const uiStore = useUIStore();
+      const editorStore = useEditorStore();
+
+      uiStore.btnCount = 0;
+      sidebarItem.setCount(uiStore.btnCount);
+      editorStore.refreshEditors();
     },
   });
 
-  QuickSSRFBtn = sdk.sidebar.registerItem("QuickSSRF", "/quickssrf", {
+  sidebarItem = sdk.sidebar.registerItem("QuickSSRF", "/quickssrf", {
     icon: "fas fa-globe",
   });
-  QuickSSRFBtn.setCount(QuickSSRFBtnCount.value);
 };

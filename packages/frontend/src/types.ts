@@ -3,13 +3,14 @@ import type { API } from "backend";
 
 export type FrontendSDK = Caido<API, never>;
 
-export type Response = {
+export type Interaction = {
   protocol: string;
-  uniqueId: string; // Converted to camelCase for consistency
-  fullId: string; // Converted to camelCase for consistency
-  qType: string; // Query type
+  uniqueId: string;
+  fullId: string;
+  qType: string;
   rawRequest: string;
   rawResponse: string;
   remoteAddress: string;
-  timestamp: string; // Use Date type for parsing if necessary
+  timestamp: string;
+  httpPath: string;
 };

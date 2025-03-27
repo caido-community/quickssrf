@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "plugins": [{ "name": "@vue/typescript-plugin" }],
     "lib": ["DOM", "ESNext"],
     "types": ["@caido/sdk-backend"],
     "baseUrl": ".",

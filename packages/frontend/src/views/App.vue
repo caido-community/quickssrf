@@ -1,124 +1,82 @@
 <script setup lang="ts">
 import Button from "primevue/button";
-import Column from "primevue/column";
-import DataTable from "primevue/datatable";
 import Splitter from "primevue/splitter";
 import SplitterPanel from "primevue/splitterpanel";
-import { onMounted } from "vue";
+import Tooltip from "primevue/tooltip";
+import { onMounted, toRef } from "vue";
 
-import { useLogic } from "./useLogic";
+import ActionBar from "@/components/ActionBar.vue";
+import PayloadTable from "@/components/PayloadTable.vue";
+import { useLogic } from "@/composables/useLogic";
+import { useUIStore } from "@/stores/uiStore";
 
-const {
-  requestEl,
-  responseEl,
-  onGenerateClick,
-  onManualPoll,
-  onClearData,
-  onSupport,
-  onRowClick,
-  tableData,
-  selectedRow,
-  initializeEditors,
-} = useLogic();
+const vTooltip = Tooltip;
+const { requestEl, responseEl, initializeEditors } = useLogic();
+
+const uiStore = useUIStore();
+const selectedRow = toRef(uiStore, "selectedRow");
 
 onMounted(() => {
-  initializeEditors();
+    initializeEditors();
 });
 </script>
 <template>
-  <Splitter class="h-full" layout="vertical">
-    <SplitterPanel class="flex-1 min-h-0">
-      <div
-        class="h-full rounded-[0.25rem] shadow-md bg-surface-0 dark:bg-surface-800 text-surface-700 dark:text-surface-0"
-      >
-        <div class="h-full flex flex-col">
-          <!-- Header Section -->
-          <div class="content-center p-4 flex items-center justify-between">
-            <h3 class="text-xl">QuickSSRF</h3>
-          </div>
+    <Splitter class="h-full" layout="vertical">
+        <!-- Top: controls & table -->
+        <SplitterPanel class="flex-1 min-h-0" :min-size="30">
+            <div
+                class="h-full rounded-md shadow-md bg-surface-0 dark:bg-surface-800 text-surface-700 dark:text-surface-0 flex flex-col"
+            >
+                <!-- Header -->
+                <header
+                    class="p-4 flex justify-between items-center border-b border-surface-200 dark:border-surface-700"
+                >
+                    <h1 class="text-2xl font-semibold">QuickSSRF</h1>
+                    <Button
+                        label="Star on GitHub"
+                        icon="fas fa-star"
+                        class="font-medium"
+                        v-tooltip="'Support the project on GitHub'"
+                    />
+                </header>
 
-          <!-- Content Section -->
-          <div class="flex flex-col h-full min-h-0">
-            <div class="flex items-center justify-between p-4 pt-0">
-              <!-- Actions Section -->
-              <div class="flex-1 flex items-center justify-between">
-                <!-- Left-aligned Buttons -->
-                <div class="flex gap-2">
-                  <Button
-                    label="Generate URL"
-                    style="width: 200px"
-                    @click="onGenerateClick"
-                  />
-                  <Button
-                    severity="contrast"
-                    style="width: 200px"
-                    label="Refresh"
-                    icon="fas fa-sync"
-                    @click="onManualPoll"
-                  />
-                  <Button
-                    severity="contrast"
-                    style="width: 200px"
-                    label="Clear"
-                    @click="onClearData"
-                  />
+                <!-- Controls -->
+                <div class="p-4">
+                    <ActionBar />
                 </div>
 
-                <!-- Right-aligned Button -->
-                <Button
-                  label="STAR ON GITHUB"
-                  severity="contrast"
-                  icon="fas fa-star"
-                  @click="onSupport"
-                  iconClass="text-yellow-400"
-                  style="width: 200px"
-                />
-              </div>
+                <!-- Table -->
+                <div class="flex-1 min-h-0 overflow-auto">
+                    <PayloadTable />
+                </div>
+            </div>
+        </SplitterPanel>
+
+        <!-- Bottom: editors -->
+        <SplitterPanel class="flex-1" :min-size="30">
+            <!-- Empty state card -->
+            <div
+                class="h-full w-full flex flex-col justify-center items-center bg-surface-0 dark:bg-surface-800 text-surface-700 dark:text-surface-0 rounded-md shadow-md"
+                :style="{ display: selectedRow ? 'none' : 'flex' }"
+            >
+                <i class="fas fa-code text-surface-300 text-4xl mb-3"></i>
+                <p class="text-surface-400 text-center">
+                    Select an interaction to view request and response details
+                </p>
             </div>
 
-            <!-- Request Logs Section -->
-            <div class="flex-1 min-h-0 overflow-auto">
-              <!-- DataTable directly scrollable -->
-              <DataTable
-                v-model:selection="selectedRow"
-                :value="tableData"
-                selection-mode="single"
-                data-key="req"
-                scrollable
-                scroll-height="100%"
-                class="w-full h-full"
-                @row-click="onRowClick"
-                stripedRows
-              >
-                <Column field="req" header="Req #" sortable />
-                <Column field="dateTime" header="Date-Time" sortable />
-                <Column field="type" header="Type" sortable />
-                <Column field="payload" header="Payload" sortable />
-                <Column field="source" header="Source" sortable />
-
-                <template #empty>
-                  <div
-                    class="flex flex-col justify-center items-center h-full w-full"
-                  >
-                    <p class="text-surface-300 text-center">No data found</p>
-                  </div>
-                </template>
-              </DataTable>
-            </div>
-          </div>
-        </div>
-      </div>
-    </SplitterPanel>
-
-    <SplitterPanel class="flex-1">
-      <Splitter class="h-full">
-        <SplitterPanel class="min-h-0">
-          <div ref="requestEl" class="h-full"></div>
+            <!-- Editors -->
+            <Splitter
+                class="h-full"
+                :style="{ display: selectedRow ? 'flex' : 'none' }"
+            >
+                <SplitterPanel class="min-h-0" :min-size="30">
+                    <div ref="requestEl" class="h-full"></div>
+                </SplitterPanel>
+                <SplitterPanel class="min-h-0" :min-size="30">
+                    <div ref="responseEl" class="h-full"></div>
+                </SplitterPanel>
+            </Splitter>
         </SplitterPanel>
-        <SplitterPanel class="min-h-0">
-          <div ref="responseEl" class="h-full"></div>
-        </SplitterPanel>
-      </Splitter>
-    </SplitterPanel>
-  </Splitter>
+    </Splitter>
 </template>

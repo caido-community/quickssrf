@@ -5,7 +5,6 @@ import { defineConfig } from "@caido-community/dev";
 import vue from "@vitejs/plugin-vue";
 import prefixwrap from "postcss-prefixwrap";
 import tailwindcss from "tailwindcss";
-// @ts-expect-error
 import tailwindPrimeui from "tailwindcss-primeui";
 
 const id = "quickssrf";
@@ -27,6 +26,7 @@ export default defineConfig({
         id: "quickssrf-backend",
       },
       vite: {
+        // @ts-expect-error
         plugins: [vue()],
         build: {
           rollupOptions: {
@@ -44,7 +44,7 @@ export default defineConfig({
         css: {
           postcss: {
             plugins: [
-              // This plugin injects the necessary Tailwind classes
+              // @ts-expect-error
               tailwindcss({
                 content: [
                   "./packages/frontend/src/**/*.{vue,ts}",
@@ -64,6 +64,7 @@ export default defineConfig({
 
               // This plugin wraps the root element in a unique ID
               // This is necessary to prevent styling conflicts between plugins
+              // @ts-expect-error
               prefixwrap(`#plugin--${id}`),
             ],
           },
