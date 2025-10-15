@@ -16,7 +16,7 @@ const { requestEl, responseEl, initializeEditors } = useLogic();
 const uiStore = useUIStore();
 const selectedRow = toRef(uiStore, "selectedRow");
 const openGitHub = () => {
-  (window as any).open('https://github.com/caido-community/quickssrf', '_blank');
+  window.open("https://github.com/caido-community/quickssrf", "_blank");
 };
 
 onMounted(() => {

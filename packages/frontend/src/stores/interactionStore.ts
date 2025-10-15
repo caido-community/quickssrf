@@ -13,7 +13,7 @@ export const useInteractionStore = defineStore("interaction", () => {
 
   const data = ref<Interaction[]>([]);
   const clientService = ref<ReturnType<typeof useClientService> | undefined>(
-    undefined
+    undefined,
   );
 
   const tableData = computed(() => {
@@ -93,8 +93,8 @@ export const useInteractionStore = defineStore("interaction", () => {
         (interaction: Record<string, unknown>) => {
           const resp = parseData(interaction);
           addToData(resp);
-        }
-      )
+        },
+      ),
     );
 
     if (error) {

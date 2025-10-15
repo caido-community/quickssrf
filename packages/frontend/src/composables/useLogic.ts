@@ -60,10 +60,10 @@ export function useLogic() {
     const requestEditor = sdk.ui.httpRequestEditor();
 
     const responseEditorEl = responseEl.value?.appendChild(
-      responseEditor.getElement()
+      responseEditor.getElement(),
     );
     const requestEditorEl = requestEl.value?.appendChild(
-      requestEditor.getElement()
+      requestEditor.getElement(),
     );
 
     if (responseEditorEl && requestEditorEl) {
@@ -81,7 +81,7 @@ export function useLogic() {
         if (newValue) {
           editorStore.updateEditorContent(newValue);
         }
-      }
+      },
     );
 
     const eventHandler = () => {
