@@ -1,6 +1,6 @@
 export const generateRandomString = (
   length: number,
-  lettersOnly: boolean = false
+  lettersOnly: boolean = false,
 ) => {
   let characters = "";
   if (lettersOnly) {

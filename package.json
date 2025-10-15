@@ -1,6 +1,6 @@
 {
   "name": "quickssrf",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "QuickSSRF is a tool for detecting out-of-band vulnerabilities via server interactions.",
   "author": "w2xim3 <dev@caido.io>, bebiks <bebiks@cvssadvisor.com>",
   "license": "MIT",

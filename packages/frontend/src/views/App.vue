@@ -15,6 +15,9 @@ const { requestEl, responseEl, initializeEditors } = useLogic();
 
 const uiStore = useUIStore();
 const selectedRow = toRef(uiStore, "selectedRow");
+const openGitHub = () => {
+  window.open("https://github.com/caido-community/quickssrf", "_blank");
+};
 
 onMounted(() => {
   initializeEditors();
@@ -37,6 +40,7 @@ onMounted(() => {
             label="Star on GitHub"
             icon="fas fa-star"
             class="font-medium"
+            @click="openGitHub"
           />
         </header>
 
@@ -53,7 +57,7 @@ onMounted(() => {
     </SplitterPanel>
 
     <!-- Bottom: editors -->
-    <SplitterPanel class="flex-1" :min-size="30">
+    <SplitterPanel class="flex-1 min-h-0">
       <!-- Empty state card -->
       <div
         class="h-full w-full flex flex-col justify-center items-center bg-surface-0 dark:bg-surface-800 text-surface-700 dark:text-surface-0 rounded-md shadow-md"
@@ -66,17 +70,19 @@ onMounted(() => {
       </div>
 
       <!-- Editors -->
-      <Splitter
-        class="h-full"
-        :style="{ display: selectedRow ? 'flex' : 'none' }"
-      >
-        <SplitterPanel class="min-h-0" :min-size="30">
-          <div ref="requestEl" class="h-full"></div>
-        </SplitterPanel>
-        <SplitterPanel class="min-h-0" :min-size="30">
-          <div ref="responseEl" class="h-full"></div>
-        </SplitterPanel>
-      </Splitter>
+      <div class="h-full flex flex-col">
+        <Splitter
+          class="h-full"
+          :style="{ display: selectedRow ? 'flex' : 'none' }"
+        >
+          <SplitterPanel class="flex-1 min-h-0">
+            <div ref="requestEl" class="h-full overflow-auto"></div>
+          </SplitterPanel>
+          <SplitterPanel class="flex-1 min-h-0">
+            <div ref="responseEl" class="h-full overflow-auto"></div>
+          </SplitterPanel>
+        </Splitter>
+      </div>
     </SplitterPanel>
   </Splitter>
 </template>
