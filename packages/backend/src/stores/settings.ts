@@ -33,16 +33,20 @@ export class SettingsStore {
   }
 
   private validateSettings(settings: Settings): Settings {
+    // Validation based on interactsh-client behavior:
+    // - cidl/cidn must be >= 1 (negative values cause panic)
+    // - No upper limit in code, but DNS labels are max 63 chars
+    // - Combined length should stay reasonable for DNS compatibility
     return {
       ...settings,
       pollingInterval: Math.max(1000, settings.pollingInterval ?? 30_000),
       correlationIdLength: Math.min(
-        100,
-        Math.max(10, settings.correlationIdLength ?? 20),
+        63,
+        Math.max(1, settings.correlationIdLength ?? 20),
       ),
       correlationIdNonceLength: Math.min(
-        100,
-        Math.max(5, settings.correlationIdNonceLength ?? 13),
+        63,
+        Math.max(1, settings.correlationIdNonceLength ?? 13),
       ),
     };
   }
@@ -89,15 +93,15 @@ export class SettingsStore {
 
     if (validated.correlationIdLength !== undefined) {
       validated.correlationIdLength = Math.min(
-        100,
-        Math.max(10, validated.correlationIdLength),
+        63,
+        Math.max(1, validated.correlationIdLength),
       );
     }
 
     if (validated.correlationIdNonceLength !== undefined) {
       validated.correlationIdNonceLength = Math.min(
-        100,
-        Math.max(5, validated.correlationIdNonceLength),
+        63,
+        Math.max(1, validated.correlationIdNonceLength),
       );
     }
 

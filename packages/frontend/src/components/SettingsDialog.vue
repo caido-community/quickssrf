@@ -94,13 +94,12 @@ const handleKeyDown = (event: KeyboardEvent) => {
         <InputNumber
           id="correlationIdLength"
           v-model="settingsStore.correlationIdLength"
-          :min="10"
-          :max="100"
+          :min="1"
+          :max="63"
           class="w-full"
         />
         <small class="text-gray-500"
-          >Must match your interactsh-server -correlation-id-length (default:
-          20)</small
+          >Must match your interactsh-server -cidl (default: 20)</small
         >
       </div>
 
@@ -111,13 +110,12 @@ const handleKeyDown = (event: KeyboardEvent) => {
         <InputNumber
           id="correlationIdNonceLength"
           v-model="settingsStore.correlationIdNonceLength"
-          :min="5"
-          :max="100"
+          :min="1"
+          :max="63"
           class="w-full"
         />
         <small class="text-gray-500"
-          >Must match your interactsh-server -correlation-id-nonce-length
-          (default: 13)</small
+          >Must match your interactsh-server -cidn (default: 13)</small
         >
       </div>
     </div>
