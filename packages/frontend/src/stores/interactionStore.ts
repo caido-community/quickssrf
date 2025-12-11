@@ -15,7 +15,165 @@ export const useInteractionStore = defineStore("interaction", () => {
   const data = ref<Interaction[]>([]);
   const isStarted = ref(false);
   const lastInteractionIndex = ref(0);
+  const filterQuery = ref("");
+  const selectedRows = ref<Interaction[]>([]);
+  const rowColors = ref<Record<string, string>>({});
   let pollingIntervalId: ReturnType<typeof setInterval> | undefined;
+
+  // Filter condition type: field.operator:"value"
+  type FilterCondition = {
+    field: string;
+    operator: string;
+    value: string;
+  };
+  type FilterGroup = { conditions: FilterCondition[]; operator: "AND" | "OR" };
+
+  // Parse HTTPQL-style filter: field.operator:"value" or field.operator:value
+  function parseCondition(token: string): FilterCondition | null {
+    // Match: field.operator:"value" or field.operator:value
+    const match = token.match(/^(\w+)\.(\w+):["']?(.+?)["']?$/);
+    if (match && match[1] && match[2] && match[3]) {
+      return {
+        field: match[1].toLowerCase(),
+        operator: match[2].toLowerCase(),
+        value: match[3],
+      };
+    }
+
+    // Legacy format: field:value (treat as cont)
+    const colonIndex = token.indexOf(":");
+    if (colonIndex > 0) {
+      const field = token.substring(0, colonIndex).toLowerCase();
+      let value = token.substring(colonIndex + 1);
+      value = value.replace(/^["']|["']$/g, ""); // Remove quotes
+      if (value) {
+        return { field, operator: "cont", value };
+      }
+    }
+
+    return null;
+  }
+
+  // Parse HTTPQL-style filter query with AND/OR support
+  function parseFilter(query: string): FilterGroup[] {
+    const groups: FilterGroup[] = [];
+    if (!query.trim()) return groups;
+
+    // Split by OR first (lower precedence)
+    const orParts = query.trim().split(/\s+OR\s+/i);
+
+    for (const orPart of orParts) {
+      // Split by AND or space (implicit AND)
+      const andParts = orPart.trim().split(/\s+(?:AND\s+)?/i);
+      const conditions: FilterCondition[] = [];
+
+      for (const part of andParts) {
+        const condition = parseCondition(part);
+        if (condition) {
+          conditions.push(condition);
+        }
+      }
+
+      if (conditions.length > 0) {
+        groups.push({ conditions, operator: "AND" });
+      }
+    }
+
+    return groups;
+  }
+
+  // Get field value from item
+  function getFieldValue(
+    item: Interaction & { req: number; dateTime: string },
+    field: string,
+  ): string {
+    switch (field) {
+      case "protocol":
+      case "type":
+        return item.protocol.toLowerCase();
+      case "ip":
+      case "source":
+        return item.remoteAddress.toLowerCase();
+      case "path":
+        return item.httpPath.toLowerCase();
+      case "payload":
+      case "id":
+        return item.fullId.toLowerCase();
+      default:
+        return "";
+    }
+  }
+
+  // Apply operator to check if value matches
+  function applyOperator(
+    fieldValue: string,
+    operator: string,
+    filterValue: string,
+  ): boolean {
+    const lowerFilterValue = filterValue.toLowerCase();
+
+    switch (operator) {
+      case "eq":
+        return fieldValue === lowerFilterValue;
+      case "ne":
+        return fieldValue !== lowerFilterValue;
+      case "cont":
+        return fieldValue.includes(lowerFilterValue);
+      case "ncont":
+        return !fieldValue.includes(lowerFilterValue);
+      case "like":
+        // Convert SQL LIKE pattern to regex: % -> .*, _ -> .
+        const likePattern = lowerFilterValue
+          .replace(/%/g, ".*")
+          .replace(/_/g, ".");
+        return new RegExp(`^${likePattern}$`, "i").test(fieldValue);
+      case "nlike":
+        const nlikePattern = lowerFilterValue
+          .replace(/%/g, ".*")
+          .replace(/_/g, ".");
+        return !new RegExp(`^${nlikePattern}$`, "i").test(fieldValue);
+      case "regex":
+        try {
+          return new RegExp(filterValue, "i").test(fieldValue);
+        } catch {
+          return false;
+        }
+      case "nregex":
+        try {
+          return !new RegExp(filterValue, "i").test(fieldValue);
+        } catch {
+          return true;
+        }
+      default:
+        // Default to contains
+        return fieldValue.includes(lowerFilterValue);
+    }
+  }
+
+  // Check if a single condition matches
+  function matchesCondition(
+    item: Interaction & { req: number; dateTime: string },
+    condition: FilterCondition,
+  ): boolean {
+    const fieldValue = getFieldValue(item, condition.field);
+    return applyOperator(fieldValue, condition.operator, condition.value);
+  }
+
+  // Check if interaction matches filter groups (OR between groups, AND within group)
+  function matchesFilter(
+    item: Interaction & { req: number; dateTime: string },
+    groups: FilterGroup[],
+  ): boolean {
+    if (groups.length === 0) return true;
+
+    // OR between groups: at least one group must match
+    return groups.some((group) => {
+      // AND within group: all conditions must match
+      return group.conditions.every((condition) =>
+        matchesCondition(item, condition),
+      );
+    });
+  }
 
   const tableData = computed(() => {
     return data.value.map((item: Interaction, index: number) => {
@@ -26,6 +184,12 @@ export const useInteractionStore = defineStore("interaction", () => {
         protocol: item.protocol.toUpperCase(),
       };
     });
+  });
+
+  const filteredTableData = computed(() => {
+    const groups = parseFilter(filterQuery.value);
+    if (groups.length === 0) return tableData.value;
+    return tableData.value.filter((item) => matchesFilter(item, groups));
   });
 
   function processInteraction(
@@ -169,6 +333,7 @@ export const useInteractionStore = defineStore("interaction", () => {
   function clearData(resetService = false) {
     data.value = [];
     lastInteractionIndex.value = 0;
+    selectedRows.value = [];
 
     uiStore.setBtnCount(0);
     sidebarItem.setCount(uiStore.btnCount);
@@ -183,12 +348,89 @@ export const useInteractionStore = defineStore("interaction", () => {
     return true;
   }
 
+  // Delete a single interaction by uniqueId
+  function deleteInteraction(uniqueId: string) {
+    const index = data.value.findIndex((item) => item.uniqueId === uniqueId);
+    if (index !== -1) {
+      data.value.splice(index, 1);
+    }
+    // Also remove from selection if present
+    selectedRows.value = selectedRows.value.filter(
+      (item) => item.uniqueId !== uniqueId,
+    );
+    // Also remove color if present
+    delete rowColors.value[uniqueId];
+  }
+
+  // Delete all selected interactions
+  function deleteSelected() {
+    const selectedIds = new Set(selectedRows.value.map((item) => item.uniqueId));
+    data.value = data.value.filter((item) => !selectedIds.has(item.uniqueId));
+    // Also remove colors
+    for (const id of selectedIds) {
+      delete rowColors.value[id];
+    }
+    selectedRows.value = [];
+  }
+
+  // Clear filter
+  function clearFilter() {
+    filterQuery.value = "";
+  }
+
+  // Set row color
+  function setRowColor(fullId: string, color: string | null) {
+    if (color === null) {
+      delete rowColors.value[fullId];
+    } else {
+      rowColors.value[fullId] = color;
+    }
+  }
+
+  // Get row color
+  function getRowColor(fullId: string): string | undefined {
+    return rowColors.value[fullId];
+  }
+
+  // Generate multiple URLs
+  async function generateMultipleUrls(count: number): Promise<string[]> {
+    const initialized = await initializeService();
+    if (!initialized) {
+      return [];
+    }
+
+    const urls: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const { data: result, error } = await tryCatch(
+        sdk.backend.generateInteractshUrl(),
+      );
+      if (error) {
+        console.error(`Failed to generate URL ${i + 1}:`, error);
+        continue;
+      }
+      if (result?.url) {
+        urls.push(result.url);
+      }
+    }
+    return urls;
+  }
+
   return {
     data,
     tableData,
+    filteredTableData,
+    filterQuery,
+    selectedRows,
+    rowColors,
     generateUrl,
+    generateMultipleUrls,
     manualPoll,
     clearData,
+    clearFilter,
+    deleteInteraction,
+    deleteSelected,
     resetClientService,
+    setRowColor,
+    getRowColor,
   };
 });

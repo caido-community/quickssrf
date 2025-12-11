@@ -1,5 +1,9 @@
 import type { SDK } from "caido:plugin";
-import type { GenerateUrlResult, Interaction, InteractshStartOptions } from "shared";
+import type {
+  GenerateUrlResult,
+  Interaction,
+  InteractshStartOptions,
+} from "shared";
 
 import { InteractshStore } from "../stores/interactsh";
 

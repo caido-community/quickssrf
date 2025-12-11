@@ -6,6 +6,7 @@ import Tooltip from "primevue/tooltip";
 import { onMounted, toRef } from "vue";
 
 import ActionBar from "@/components/ActionBar.vue";
+import FilterBar from "@/components/FilterBar.vue";
 import PayloadTable from "@/components/PayloadTable.vue";
 import { useLogic } from "@/composables/useLogic";
 import { useUIStore } from "@/stores/uiStore";
@@ -45,8 +46,9 @@ onMounted(() => {
         </header>
 
         <!-- Controls -->
-        <div class="p-4">
+        <div class="p-4 flex flex-col gap-3">
           <ActionBar />
+          <FilterBar />
         </div>
 
         <!-- Table -->

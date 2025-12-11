@@ -1,5 +1,9 @@
 import type { SDK } from "caido:plugin";
-import type { GenerateUrlResult, Interaction, InteractshStartOptions } from "shared";
+import type {
+  GenerateUrlResult,
+  Interaction,
+  InteractshStartOptions,
+} from "shared";
 
 import {
   createInteractshClient,
@@ -12,6 +16,7 @@ export class InteractshStore {
   private interactions: Interaction[] = [];
   private sdk: SDK;
   private isStarted = false;
+  private interactionCounter = 0;
 
   private constructor(sdk: SDK) {
     this.sdk = sdk;
@@ -32,9 +37,13 @@ export class InteractshStore {
       return String(value ?? "");
     };
 
+    // Generate a truly unique ID for each interaction
+    this.interactionCounter++;
+    const uniqueId = `int_${Date.now()}_${this.interactionCounter}`;
+
     return {
       protocol: toString(json.protocol ?? "unknown"),
-      uniqueId: toString(json["unique-id"] ?? ""),
+      uniqueId,
       fullId: toString(json["full-id"] ?? ""),
       qType: toString(json["q-type"] ?? ""),
       rawRequest: toString(json["raw-request"] ?? ""),

@@ -38,6 +38,15 @@ export const useSettingsStore = defineStore("settings", () => {
     try {
       const prevSettings = await sdk.backend.getSettings();
       const serverURLChanged = prevSettings.serverURL !== serverURL.value;
+      const correlationIdLengthChanged =
+        prevSettings.correlationIdLength !== correlationIdLength.value;
+      const correlationIdNonceLengthChanged =
+        prevSettings.correlationIdNonceLength !==
+        correlationIdNonceLength.value;
+      const needsRestart =
+        serverURLChanged ||
+        correlationIdLengthChanged ||
+        correlationIdNonceLengthChanged;
 
       await sdk.backend.updateSettings({
         serverURL: serverURL.value,
@@ -47,14 +56,13 @@ export const useSettingsStore = defineStore("settings", () => {
         correlationIdNonceLength: correlationIdNonceLength.value,
       });
 
-      if (serverURLChanged) {
+      if (needsRestart) {
         await interactionStore.resetClientService();
         interactionStore.clearData();
         uiStore.clearUI();
-        sdk.window.showToast(
-          "Server URL changed. Please generate a new URL.",
-          { variant: "info" },
-        );
+        sdk.window.showToast("Settings changed. Please generate a new URL.", {
+          variant: "info",
+        });
       }
 
       sdk.window.showToast("Settings saved successfully", {
@@ -72,12 +80,15 @@ export const useSettingsStore = defineStore("settings", () => {
   async function resetSettings() {
     try {
       const prevSettings = await sdk.backend.getSettings();
-      const needsReset = prevSettings.serverURL !== "https://oast.site";
+      const needsRestart =
+        prevSettings.serverURL !== "https://oast.site" ||
+        prevSettings.correlationIdLength !== 20 ||
+        prevSettings.correlationIdNonceLength !== 13;
 
       await sdk.backend.resetSettings();
       await loadSettings();
 
-      if (needsReset) {
+      if (needsRestart) {
         await interactionStore.resetClientService();
         interactionStore.clearData();
         uiStore.clearGeneratedUrl();

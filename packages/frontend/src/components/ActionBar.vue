@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import Button from "primevue/button";
 import InputText from "primevue/inputtext";
+import SplitButton from "primevue/splitbutton";
 
+import { computed, ref } from "vue";
+
+import MultiUrlDialog from "./MultiUrlDialog.vue";
 import SettingsDialog from "./SettingsDialog.vue";
 
 import { useLogic } from "@/composables/useLogic";
@@ -13,17 +17,36 @@ const uiStore = useUIStore();
 const interactionStore = useInteractionStore();
 const settingsStore = useSettingsStore();
 const { handleGenerateClick, handleManualPoll, handleClearData } = useLogic();
+
+const multiUrlDialogVisible = ref(false);
+
+const generateMenuItems = [
+  {
+    label: "Generate Multiple...",
+    icon: "fas fa-list",
+    command: () => {
+      multiUrlDialogVisible.value = true;
+    },
+  },
+];
+
+const selectedCount = computed(() => interactionStore.selectedRows.length);
+
+function handleDeleteSelected() {
+  interactionStore.deleteSelected();
+}
 </script>
 
 <template>
   <div class="flex justify-between items-center">
     <!-- Left side -->
     <div class="flex items-center gap-2">
-      <Button
+      <SplitButton
         v-tooltip="'Generate a unique URL and copy to clipboard'"
         label="Generate URL"
         :loading="uiStore.isGeneratingUrl"
         icon="fas fa-link"
+        :model="generateMenuItems"
         @click="handleGenerateClick"
       />
       <div v-if="uiStore.generatedUrl" class="flex items-center">
@@ -43,6 +66,15 @@ const { handleGenerateClick, handleManualPoll, handleClearData } = useLogic();
 
     <!-- Right side -->
     <div class="flex items-center gap-2">
+      <!-- Delete Selected Button -->
+      <Button
+        v-if="selectedCount > 0"
+        v-tooltip="'Delete selected interactions'"
+        :label="`Delete (${selectedCount})`"
+        severity="danger"
+        icon="fas fa-trash"
+        @click="handleDeleteSelected"
+      />
       <Button
         v-tooltip="'Manually refresh to check for new interactions'"
         severity="danger"
@@ -67,4 +99,5 @@ const { handleGenerateClick, handleManualPoll, handleClearData } = useLogic();
   </div>
 
   <SettingsDialog />
+  <MultiUrlDialog v-model:visible="multiUrlDialogVisible" />
 </template>
