@@ -15,6 +15,8 @@ export const useSettingsStore = defineStore("settings", () => {
   const serverURL = ref("");
   const token = ref("");
   const pollingInterval = ref(30_000);
+  const correlationIdLength = ref(20);
+  const correlationIdNonceLength = ref(13);
   const isSaving = ref(false);
 
   async function loadSettings() {
@@ -23,6 +25,8 @@ export const useSettingsStore = defineStore("settings", () => {
       serverURL.value = settings.serverURL;
       token.value = settings.token;
       pollingInterval.value = settings.pollingInterval;
+      correlationIdLength.value = settings.correlationIdLength;
+      correlationIdNonceLength.value = settings.correlationIdNonceLength;
     } catch (error) {
       console.error(error);
       sdk.window.showToast("Failed to load settings", { variant: "error" });
@@ -39,6 +43,8 @@ export const useSettingsStore = defineStore("settings", () => {
         serverURL: serverURL.value,
         token: token.value,
         pollingInterval: pollingInterval.value,
+        correlationIdLength: correlationIdLength.value,
+        correlationIdNonceLength: correlationIdNonceLength.value,
       });
 
       if (serverURLChanged) {
@@ -94,6 +100,8 @@ export const useSettingsStore = defineStore("settings", () => {
     serverURL,
     token,
     pollingInterval,
+    correlationIdLength,
+    correlationIdNonceLength,
     isSaving,
     loadSettings,
     saveSettings,

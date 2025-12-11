@@ -9,6 +9,8 @@ const defaultSettings = {
   serverURL: "https://oast.site",
   token: crypto.randomUUID(),
   pollingInterval: 30_000,
+  correlationIdLength: 20,
+  correlationIdNonceLength: 13,
 };
 
 export class SettingsStore {

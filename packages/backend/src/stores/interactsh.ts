@@ -59,6 +59,8 @@ export class InteractshStore {
           serverURL: options.serverURL,
           token: options.token,
           keepAliveInterval: options.pollingInterval,
+          correlationIdLength: options.correlationIdLength,
+          correlationIdNonceLength: options.correlationIdNonceLength,
         },
         (interaction: Record<string, unknown>) => {
           const parsed = this.parseInteraction(interaction);

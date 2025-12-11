@@ -2,6 +2,8 @@ export interface Settings {
   serverURL: string;
   token: string;
   pollingInterval: number;
+  correlationIdLength: number;
+  correlationIdNonceLength: number;
 }
 
 export interface Interaction {
@@ -19,6 +21,8 @@ export interface InteractshStartOptions {
   serverURL: string;
   token: string;
   pollingInterval?: number;
+  correlationIdLength?: number;
+  correlationIdNonceLength?: number;
 }
 
 export interface GenerateUrlResult {

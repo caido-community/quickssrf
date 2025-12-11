@@ -108,6 +108,8 @@ export const useInteractionStore = defineStore("interaction", () => {
         serverURL: settings.serverURL,
         token: settings.token,
         pollingInterval: settings.pollingInterval,
+        correlationIdLength: settings.correlationIdLength,
+        correlationIdNonceLength: settings.correlationIdNonceLength,
       }),
     );
 

@@ -86,6 +86,40 @@ const handleKeyDown = (event: KeyboardEvent) => {
           class="w-full"
         />
       </div>
+
+      <div class="flex flex-col gap-2">
+        <label for="correlationIdLength" class="font-medium text-sm"
+          >Correlation ID Length</label
+        >
+        <InputNumber
+          id="correlationIdLength"
+          v-model="settingsStore.correlationIdLength"
+          :min="10"
+          :max="100"
+          class="w-full"
+        />
+        <small class="text-gray-500"
+          >Must match your interactsh-server -correlation-id-length (default:
+          20)</small
+        >
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label for="correlationIdNonceLength" class="font-medium text-sm"
+          >Correlation ID Nonce Length</label
+        >
+        <InputNumber
+          id="correlationIdNonceLength"
+          v-model="settingsStore.correlationIdNonceLength"
+          :min="5"
+          :max="100"
+          class="w-full"
+        />
+        <small class="text-gray-500"
+          >Must match your interactsh-server -correlation-id-nonce-length
+          (default: 13)</small
+        >
+      </div>
     </div>
 
     <template #footer>
