@@ -32,10 +32,27 @@ export class SettingsStore {
     return SettingsStore._instance;
   }
 
+  private validateSettings(settings: Settings): Settings {
+    return {
+      ...settings,
+      pollingInterval: Math.max(1000, settings.pollingInterval ?? 30_000),
+      correlationIdLength: Math.min(
+        100,
+        Math.max(10, settings.correlationIdLength ?? 20),
+      ),
+      correlationIdNonceLength: Math.min(
+        100,
+        Math.max(5, settings.correlationIdNonceLength ?? 13),
+      ),
+    };
+  }
+
   private loadSettings(): Settings {
     try {
       const data = fs.readFileSync(this.configPath, { encoding: "utf-8" });
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      // Validate and merge with defaults for any missing fields
+      return this.validateSettings({ ...defaultSettings, ...parsed });
     } catch (error) {
       this.settings = {
         ...defaultSettings,
@@ -63,9 +80,30 @@ export class SettingsStore {
   }
 
   updateSettings(sdk: SDK, newSettings: Partial<Settings>): Settings {
+    // Validate settings before applying
+    const validated = { ...newSettings };
+
+    if (validated.pollingInterval !== undefined) {
+      validated.pollingInterval = Math.max(1000, validated.pollingInterval);
+    }
+
+    if (validated.correlationIdLength !== undefined) {
+      validated.correlationIdLength = Math.min(
+        100,
+        Math.max(10, validated.correlationIdLength),
+      );
+    }
+
+    if (validated.correlationIdNonceLength !== undefined) {
+      validated.correlationIdNonceLength = Math.min(
+        100,
+        Math.max(5, validated.correlationIdNonceLength),
+      );
+    }
+
     this.settings = {
       ...this.settings,
-      ...newSettings,
+      ...validated,
     };
     this.saveSettings();
     return this.getSettings();
