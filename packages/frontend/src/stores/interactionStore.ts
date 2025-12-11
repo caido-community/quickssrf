@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { computed, ref } from "vue";
 
 import { sidebarItem } from "@/index";
-import { useClientService } from "@/services/interactsh";
+import { useSDK } from "@/plugins/sdk";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useUIStore } from "@/stores/uiStore";
 import type { Interaction } from "@/types";
@@ -10,11 +10,12 @@ import { tryCatch } from "@/utils/try-catch";
 
 export const useInteractionStore = defineStore("interaction", () => {
   const uiStore = useUIStore();
+  const sdk = useSDK();
 
   const data = ref<Interaction[]>([]);
-  const clientService = ref<ReturnType<typeof useClientService> | undefined>(
-    undefined,
-  );
+  const isStarted = ref(false);
+  const lastInteractionIndex = ref(0);
+  let pollingIntervalId: ReturnType<typeof setInterval> | undefined;
 
   const tableData = computed(() => {
     return data.value.map((item: Interaction, index: number) => {
@@ -27,28 +28,16 @@ export const useInteractionStore = defineStore("interaction", () => {
     });
   });
 
-  function parseData(json: Record<string, unknown>): Interaction {
-    const toString = (value: unknown): string => {
-      if (typeof value === "string") {
-        return value;
-      }
-      return String(value);
-    };
-
+  function processInteraction(
+    interaction: Omit<Interaction, "httpPath">,
+  ): Interaction {
     const result: Interaction = {
-      protocol: toString(json.protocol ?? "unknown"),
-      uniqueId: toString(json["unique-id"] ?? ""),
-      fullId: toString(json["full-id"] ?? ""),
-      qType: toString(json["q-type"] ?? ""),
-      rawRequest: toString(json["raw-request"] ?? ""),
-      rawResponse: toString(json["raw-response"] ?? ""),
-      remoteAddress: toString(json["remote-address"] ?? ""),
-      timestamp: toString(json.timestamp ?? new Date().toISOString()),
+      ...interaction,
       httpPath: "",
     };
 
     // Extract HTTP path for HTTP requests
-    if (result.protocol === "http") {
+    if (result.protocol.toLowerCase() === "http") {
       const firstLine = result.rawRequest.split("\r\n")[0] || "";
       const parts = firstLine.split(" ");
       result.httpPath =
@@ -56,7 +45,7 @@ export const useInteractionStore = defineStore("interaction", () => {
     }
 
     // Normalize line endings for DNS requests
-    if (result.protocol === "dns") {
+    if (result.protocol.toLowerCase() === "dns") {
       result.rawRequest = result.rawRequest.split("\n").join("\r\n");
       result.rawResponse = result.rawResponse.split("\n").join("\r\n");
     }
@@ -73,79 +62,117 @@ export const useInteractionStore = defineStore("interaction", () => {
     data.value.push(response);
   }
 
-  async function initializeService() {
-    if (clientService.value) return clientService.value;
+  async function fetchNewInteractions() {
+    const { data: newInteractions, error } = await tryCatch(
+      sdk.backend.getNewInteractions(lastInteractionIndex.value),
+    );
 
-    clientService.value = useClientService();
-    if (!clientService.value) {
-      throw new Error("Failed to create client service");
+    if (error) {
+      console.error("Failed to fetch new interactions:", error);
+      return;
     }
+
+    if (newInteractions && newInteractions.length > 0) {
+      for (const interaction of newInteractions) {
+        const processed = processInteraction(interaction);
+        addToData(processed);
+      }
+      lastInteractionIndex.value += newInteractions.length;
+    }
+  }
+
+  function startPolling(intervalMs: number) {
+    if (pollingIntervalId) {
+      clearInterval(pollingIntervalId);
+    }
+
+    pollingIntervalId = setInterval(() => {
+      fetchNewInteractions();
+    }, intervalMs);
+  }
+
+  function stopPolling() {
+    if (pollingIntervalId) {
+      clearInterval(pollingIntervalId);
+      pollingIntervalId = undefined;
+    }
+  }
+
+  async function initializeService() {
+    if (isStarted.value) return true;
 
     const settings = useSettingsStore();
 
     const { error } = await tryCatch(
-      clientService.value.start(
-        {
-          serverURL: settings.serverURL,
-          token: settings.token,
-          keepAliveInterval: settings.pollingInterval,
-        },
-        (interaction: Record<string, unknown>) => {
-          const resp = parseData(interaction);
-          addToData(resp);
-        },
-      ),
+      sdk.backend.startInteractsh({
+        serverURL: settings.serverURL,
+        token: settings.token,
+        pollingInterval: settings.pollingInterval,
+      }),
     );
 
     if (error) {
       console.error("Failed to initialize service:", error);
-      clientService.value = undefined;
-      return undefined;
+      return false;
     }
 
-    return clientService.value;
+    isStarted.value = true;
+    startPolling(settings.pollingInterval);
+    return true;
   }
 
   async function resetClientService() {
-    if (clientService.value) {
-      try {
-        await clientService.value.stop();
-      } catch (error) {
+    stopPolling();
+
+    if (isStarted.value) {
+      const { error } = await tryCatch(sdk.backend.stopInteractsh());
+      if (error) {
         console.error("Error stopping client service:", error);
       }
-      clientService.value = undefined;
+      isStarted.value = false;
     }
-  }
 
-  function getClientService() {
-    return clientService.value;
+    lastInteractionIndex.value = 0;
   }
 
   async function generateUrl() {
-    const service = await initializeService();
-    if (!service) {
+    const initialized = await initializeService();
+    if (!initialized) {
       return null;
     }
-    return service.generateUrl(1).url || null;
+
+    const { data: result, error } = await tryCatch(
+      sdk.backend.generateInteractshUrl(),
+    );
+
+    if (error) {
+      console.error("Failed to generate URL:", error);
+      return null;
+    }
+
+    return result?.url || null;
   }
 
   async function manualPoll() {
-    if (!clientService.value) {
+    if (!isStarted.value) {
       throw new Error("Client service not initialized");
     }
 
-    const { error } = await tryCatch(clientService.value.poll());
-    if (error) {
-      console.error("Manual polling failed:", error);
-      throw new Error("Failed to poll for interactions");
-    }
+    // Force backend to poll the Interactsh server
+    await sdk.backend.pollInteractsh();
+    // Then fetch the new interactions
+    await fetchNewInteractions();
   }
 
   function clearData(resetService = false) {
     data.value = [];
+    lastInteractionIndex.value = 0;
 
     uiStore.setBtnCount(0);
     sidebarItem.setCount(uiStore.btnCount);
+
+    // Clear interactions on backend too
+    sdk.backend.clearInteractions();
 
     if (resetService) {
       resetClientService();
@@ -160,7 +187,6 @@ export const useInteractionStore = defineStore("interaction", () => {
     generateUrl,
     manualPoll,
     clearData,
-    getClientService,
     resetClientService,
   };
 });

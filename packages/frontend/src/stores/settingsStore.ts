@@ -40,21 +40,15 @@ export const useSettingsStore = defineStore("settings", () => {
         token: token.value,
         pollingInterval: pollingInterval.value,
       });
-      ``;
 
       if (serverURLChanged) {
         await interactionStore.resetClientService();
         interactionStore.clearData();
         uiStore.clearUI();
         sdk.window.showToast(
-          "Server URL changed. Please generat`ze a new URL.",
+          "Server URL changed. Please generate a new URL.",
           { variant: "info" },
         );
-      } else {
-        const client = interactionStore.getClientService();
-        if (client) {
-          client.updatePollingInterval(pollingInterval.value);
-        }
       }
 
       sdk.window.showToast("Settings saved successfully", {

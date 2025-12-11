@@ -3,3 +3,25 @@ export interface Settings {
   token: string;
   pollingInterval: number;
 }
+
+export interface Interaction {
+  protocol: string;
+  uniqueId: string;
+  fullId: string;
+  qType: string;
+  rawRequest: string;
+  rawResponse: string;
+  remoteAddress: string;
+  timestamp: string;
+}
+
+export interface InteractshStartOptions {
+  serverURL: string;
+  token: string;
+  pollingInterval?: number;
+}
+
+export interface GenerateUrlResult {
+  url: string;
+  uniqueId: string;
+}
