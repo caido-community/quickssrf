@@ -1,5 +1,6 @@
 import type { DefineAPI, SDK } from "caido:plugin";
 
+import { initializeRSAKeys } from "./services/crypto";
 import {
   clearInteractions,
   generateInteractshUrl,
@@ -32,6 +33,11 @@ export type API = DefineAPI<{
 
 export function init(sdk: SDK<API>) {
   sdk.console.log("Initializing QuickSSRF backend");
+
+  // Pre-initialize RSA keys for faster first request
+  sdk.console.log("Pre-initializing RSA keys...");
+  initializeRSAKeys();
+  sdk.console.log("RSA keys ready");
 
   // Settings API
   sdk.api.register("getSettings", getSettings);
