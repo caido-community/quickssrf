@@ -6,9 +6,11 @@ import {
   clearUrls,
   generateInteractshUrl,
   getActiveUrls,
+  getClientCount,
   getInteractions,
   getInteractshStatus,
   getNewInteractions,
+  initializeClients,
   pollInteractsh,
   removeUrl,
   setUrlActive,
@@ -37,6 +39,8 @@ export type API = DefineAPI<{
   setUrlActive: typeof setUrlActive;
   removeUrl: typeof removeUrl;
   clearUrls: typeof clearUrls;
+  initializeClients: typeof initializeClients;
+  getClientCount: typeof getClientCount;
 }>;
 
 export function init(sdk: SDK<API>) {
@@ -67,4 +71,8 @@ export function init(sdk: SDK<API>) {
   sdk.api.register("setUrlActive", setUrlActive);
   sdk.api.register("removeUrl", removeUrl);
   sdk.api.register("clearUrls", clearUrls);
+
+  // Client Management API
+  sdk.api.register("initializeClients", initializeClients);
+  sdk.api.register("getClientCount", getClientCount);
 }

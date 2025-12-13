@@ -244,4 +244,30 @@ export class InteractshStore {
     this.activeUrls = [];
     this.sdk.console.log("All tracked URLs cleared");
   }
+
+  // Pre-initialize clients for multiple servers (for random mode)
+  async initializeClients(serverUrls: string[]): Promise<number> {
+    if (!this.isStarted) {
+      throw new Error("Interactsh store not started");
+    }
+
+    let initialized = 0;
+    const promises = serverUrls.map(async (serverUrl) => {
+      try {
+        await this.getOrCreateClient(serverUrl);
+        initialized++;
+      } catch (error) {
+        this.sdk.console.error(`Failed to initialize client for ${serverUrl}: ${error}`);
+      }
+    });
+
+    await Promise.all(promises);
+    this.sdk.console.log(`Initialized ${initialized}/${serverUrls.length} clients`);
+    return initialized;
+  }
+
+  // Get count of initialized clients
+  getClientCount(): number {
+    return this.clients.size;
+  }
 }

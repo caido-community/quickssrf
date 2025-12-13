@@ -3,7 +3,7 @@ import { computed, ref } from "vue";
 
 import { sidebarItem } from "@/index";
 import { useSDK } from "@/plugins/sdk";
-import { useSettingsStore } from "@/stores/settingsStore";
+import { SERVER_PRESETS, useSettingsStore } from "@/stores/settingsStore";
 import { useUIStore } from "@/stores/uiStore";
 import type { Interaction } from "@/types";
 import { tryCatch } from "@/utils/try-catch";
@@ -289,6 +289,19 @@ export const useInteractionStore = defineStore("interaction", () => {
 
     isStarted.value = true;
     startPolling(settings.pollingInterval);
+
+    // If random mode is enabled, pre-initialize all server clients in background
+    if (settings.serverMode === "random") {
+      const allServerUrls = SERVER_PRESETS
+        .filter((p) => p.value !== "random" && p.value !== "custom")
+        .map((p) => p.value);
+      sdk.backend.initializeClients(allServerUrls).then((count) => {
+        console.log(`Pre-initialized ${count} server clients for random mode`);
+      }).catch((err) => {
+        console.error("Failed to pre-initialize clients:", err);
+      });
+    }
+
     return true;
   }
 
@@ -410,6 +423,7 @@ export const useInteractionStore = defineStore("interaction", () => {
 
     const settings = useSettingsStore();
     const urls: string[] = [];
+
     for (let i = 0; i < count; i++) {
       // Get effective server URL for each URL (random mode picks different servers)
       const serverUrl = settings.getEffectiveServerUrl();
@@ -424,6 +438,7 @@ export const useInteractionStore = defineStore("interaction", () => {
         urls.push(result.url);
       }
     }
+
     return urls;
   }
 

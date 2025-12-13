@@ -83,3 +83,16 @@ export const clearUrls = (sdk: SDK): void => {
   const store = InteractshStore.get(sdk);
   store.clearUrls();
 };
+
+export const initializeClients = async (
+  sdk: SDK,
+  serverUrls: string[],
+): Promise<number> => {
+  const store = InteractshStore.get(sdk);
+  return store.initializeClients(serverUrls);
+};
+
+export const getClientCount = (sdk: SDK): number => {
+  const store = InteractshStore.get(sdk);
+  return store.getClientCount();
+};

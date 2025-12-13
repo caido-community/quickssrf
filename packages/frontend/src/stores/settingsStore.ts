@@ -10,11 +10,9 @@ export const SERVER_PRESETS = [
   { label: "Random", value: "random" },
   { label: "oast.site", value: "https://oast.site" },
   { label: "oast.fun", value: "https://oast.fun" },
-  { label: "oast.online", value: "https://oast.online" },
   { label: "oast.me", value: "https://oast.me" },
   { label: "oast.pro", value: "https://oast.pro" },
   { label: "oast.live", value: "https://oast.live" },
-  { label: "interact.sh", value: "https://interact.sh" },
   { label: "Custom", value: "custom" },
 ];
 
