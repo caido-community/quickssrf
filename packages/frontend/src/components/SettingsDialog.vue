@@ -3,9 +3,10 @@ import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import InputNumber from "primevue/inputnumber";
 import InputText from "primevue/inputtext";
+import Select from "primevue/select";
 import { onBeforeUnmount, onMounted, ref } from "vue";
 
-import { useSettingsStore } from "@/stores/settingsStore";
+import { SERVER_PRESETS, useSettingsStore } from "@/stores/settingsStore";
 
 const settingsStore = useSettingsStore();
 const showToken = ref(false);
@@ -46,11 +47,27 @@ const handleKeyDown = (event: KeyboardEvent) => {
   >
     <div class="flex flex-col gap-4 p-2">
       <div class="flex flex-col gap-2">
-        <label for="serverURL" class="font-medium text-sm">Server URL</label>
+        <label for="serverMode" class="font-medium text-sm">Server</label>
+        <Select
+          id="serverMode"
+          v-model="settingsStore.serverMode"
+          :options="SERVER_PRESETS"
+          option-label="label"
+          option-value="value"
+          placeholder="Select a server"
+          class="w-full"
+        />
+        <small v-if="settingsStore.serverMode === 'random'" class="text-gray-500">
+          A random server will be selected for each URL generation
+        </small>
+      </div>
+
+      <div v-if="settingsStore.serverMode === 'custom'" class="flex flex-col gap-2">
+        <label for="serverURL" class="font-medium text-sm">Custom Server URL</label>
         <InputText
           id="serverURL"
           v-model="settingsStore.serverURL"
-          placeholder="Enter server URL"
+          placeholder="https://your-server.com"
           class="p-2 w-full"
         />
       </div>

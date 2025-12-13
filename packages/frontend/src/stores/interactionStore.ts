@@ -269,9 +269,12 @@ export const useInteractionStore = defineStore("interaction", () => {
 
     const settings = useSettingsStore();
 
+    // Get effective server URL (handles random mode)
+    const effectiveServerUrl = settings.getEffectiveServerUrl();
+
     const { error } = await tryCatch(
       sdk.backend.startInteractsh({
-        serverURL: settings.serverURL,
+        serverURL: effectiveServerUrl,
         token: settings.token,
         pollingInterval: settings.pollingInterval,
         correlationIdLength: settings.correlationIdLength,
@@ -309,8 +312,12 @@ export const useInteractionStore = defineStore("interaction", () => {
       return null;
     }
 
+    const settings = useSettingsStore();
+    // Get effective server URL (handles random mode - picks a new random server each time)
+    const serverUrl = settings.getEffectiveServerUrl();
+
     const { data: result, error } = await tryCatch(
-      sdk.backend.generateInteractshUrl(),
+      sdk.backend.generateInteractshUrl(serverUrl),
     );
 
     if (error) {
@@ -401,10 +408,13 @@ export const useInteractionStore = defineStore("interaction", () => {
       return [];
     }
 
+    const settings = useSettingsStore();
     const urls: string[] = [];
     for (let i = 0; i < count; i++) {
+      // Get effective server URL for each URL (random mode picks different servers)
+      const serverUrl = settings.getEffectiveServerUrl();
       const { data: result, error } = await tryCatch(
-        sdk.backend.generateInteractshUrl(),
+        sdk.backend.generateInteractshUrl(serverUrl),
       );
       if (error) {
         console.error(`Failed to generate URL ${i + 1}:`, error);

@@ -75,7 +75,7 @@ onMounted(() => {
     v-model:visible="visible"
     header="Manage URLs"
     modal
-    :style="{ width: '700px' }"
+    :style="{ width: '850px' }"
   >
     <div class="flex flex-col gap-4">
       <p class="text-surface-400 text-sm">
@@ -115,6 +115,13 @@ onMounted(() => {
                 @click="copyUrl(data.url)"
               />
             </div>
+          </template>
+        </Column>
+        <Column header="Server" style="width: 120px">
+          <template #body="{ data }">
+            <span class="text-sm text-surface-400">
+              {{ data.serverUrl?.replace('https://', '') || 'N/A' }}
+            </span>
           </template>
         </Column>
         <Column header="Created" style="width: 160px">

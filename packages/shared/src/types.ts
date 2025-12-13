@@ -35,4 +35,5 @@ export interface ActiveUrl {
   uniqueId: string;
   createdAt: string;
   isActive: boolean;
+  serverUrl: string;
 }

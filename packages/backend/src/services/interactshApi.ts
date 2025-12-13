@@ -21,9 +21,12 @@ export const stopInteractsh = async (sdk: SDK): Promise<boolean> => {
   return store.stop();
 };
 
-export const generateInteractshUrl = (sdk: SDK): GenerateUrlResult => {
+export const generateInteractshUrl = async (
+  sdk: SDK,
+  serverUrl: string,
+): Promise<GenerateUrlResult> => {
   const store = InteractshStore.get(sdk);
-  return store.generateUrl();
+  return store.generateUrl(serverUrl);
 };
 
 export const getInteractions = (sdk: SDK): Interaction[] => {

@@ -15,16 +15,23 @@ export interface ActiveUrl {
   uniqueId: string;
   createdAt: string;
   isActive: boolean;
+  serverUrl: string;
+}
+
+interface ServerClient {
+  client: InteractshClient;
+  serverUrl: string;
 }
 
 export class InteractshStore {
   private static _instance?: InteractshStore;
-  private client: InteractshClient | undefined;
+  private clients: Map<string, ServerClient> = new Map();
   private interactions: Interaction[] = [];
   private activeUrls: ActiveUrl[] = [];
   private sdk: SDK;
   private isStarted = false;
   private interactionCounter = 0;
+  private currentOptions: InteractshStartOptions | undefined;
 
   private constructor(sdk: SDK) {
     this.sdk = sdk;
@@ -62,81 +69,103 @@ export class InteractshStore {
   }
 
   async start(options: InteractshStartOptions): Promise<boolean> {
-    if (this.isStarted && this.client) {
-      this.sdk.console.log("Interactsh client already started");
+    if (this.isStarted) {
+      this.sdk.console.log("Interactsh store already started");
       return true;
     }
 
-    try {
-      this.client = createInteractshClient(this.sdk);
-      this.interactions = [];
+    this.currentOptions = options;
+    this.interactions = [];
+    this.isStarted = true;
+    this.sdk.console.log("Interactsh store initialized");
+    return true;
+  }
 
-      await this.client.start(
-        {
-          serverURL: options.serverURL,
-          token: options.token,
-          keepAliveInterval: options.pollingInterval,
-          correlationIdLength: options.correlationIdLength,
-          correlationIdNonceLength: options.correlationIdNonceLength,
-        },
-        (interaction: Record<string, unknown>) => {
-          const parsed = this.parseInteraction(interaction);
+  private async getOrCreateClient(serverUrl: string): Promise<InteractshClient> {
+    const existing = this.clients.get(serverUrl);
+    if (existing) {
+      return existing.client;
+    }
 
-          // Check if this interaction's URL is still active
-          const fullId = parsed.fullId;
-          const matchingUrl = this.activeUrls.find(
-            (u) => fullId.startsWith(u.uniqueId) || u.uniqueId === fullId,
+    if (!this.currentOptions) {
+      throw new Error("Store not initialized");
+    }
+
+    const client = createInteractshClient(this.sdk);
+    await client.start(
+      {
+        serverURL: serverUrl,
+        token: this.currentOptions.token,
+        keepAliveInterval: this.currentOptions.pollingInterval,
+        correlationIdLength: this.currentOptions.correlationIdLength,
+        correlationIdNonceLength: this.currentOptions.correlationIdNonceLength,
+      },
+      (interaction: Record<string, unknown>) => {
+        const parsed = this.parseInteraction(interaction);
+
+        // Check if this interaction's URL is tracked and active
+        const fullId = parsed.fullId;
+        const matchingUrl = this.activeUrls.find(
+          (u) => fullId.startsWith(u.uniqueId) || u.uniqueId === fullId,
+        );
+
+        // Only add interaction if URL is found AND is active
+        if (matchingUrl && matchingUrl.isActive) {
+          this.interactions.push(parsed);
+          this.sdk.console.log(
+            `New interaction received: ${parsed.protocol}`,
           );
+        } else if (matchingUrl && !matchingUrl.isActive) {
+          this.sdk.console.log(
+            `Interaction ignored (URL disabled): ${parsed.fullId}`,
+          );
+        } else {
+          this.sdk.console.log(
+            `Interaction ignored (URL not tracked): ${parsed.fullId}`,
+          );
+        }
+      },
+    );
 
-          // Only add interaction if URL is active or not tracked (for backwards compatibility)
-          if (!matchingUrl || matchingUrl.isActive) {
-            this.interactions.push(parsed);
-            this.sdk.console.log(
-              `New interaction received: ${parsed.protocol}`,
-            );
-          } else {
-            this.sdk.console.log(
-              `Interaction ignored (URL disabled): ${parsed.fullId}`,
-            );
-          }
-        },
-      );
-
-      this.isStarted = true;
-      this.sdk.console.log("Interactsh client started successfully");
-      return true;
-    } catch (error) {
-      this.sdk.console.error(`Failed to start Interactsh client: ${error}`);
-      this.client = undefined;
-      this.isStarted = false;
-      throw error;
-    }
+    this.clients.set(serverUrl, { client, serverUrl });
+    this.sdk.console.log(`Created client for server: ${serverUrl}`);
+    return client;
   }
 
   async stop(): Promise<boolean> {
-    if (!this.client || !this.isStarted) {
-      this.sdk.console.log("Interactsh client not started");
+    if (!this.isStarted) {
+      this.sdk.console.log("Interactsh store not started");
       return true;
     }
 
     try {
-      await this.client.stop();
-      this.client = undefined;
+      // Stop all clients
+      for (const [serverUrl, { client }] of this.clients) {
+        try {
+          await client.stop();
+          this.sdk.console.log(`Stopped client for server: ${serverUrl}`);
+        } catch (error) {
+          this.sdk.console.error(`Failed to stop client for ${serverUrl}: ${error}`);
+        }
+      }
+      this.clients.clear();
       this.isStarted = false;
-      this.sdk.console.log("Interactsh client stopped successfully");
+      this.currentOptions = undefined;
+      this.sdk.console.log("All Interactsh clients stopped successfully");
       return true;
     } catch (error) {
-      this.sdk.console.error(`Failed to stop Interactsh client: ${error}`);
+      this.sdk.console.error(`Failed to stop Interactsh clients: ${error}`);
       throw error;
     }
   }
 
-  generateUrl(): GenerateUrlResult {
-    if (!this.client || !this.isStarted) {
-      throw new Error("Interactsh client not started");
+  async generateUrl(serverUrl: string): Promise<GenerateUrlResult> {
+    if (!this.isStarted) {
+      throw new Error("Interactsh store not started");
     }
 
-    const result = this.client.generateUrl();
+    const client = await this.getOrCreateClient(serverUrl);
+    const result = client.generateUrl();
 
     // Track this URL as active
     this.activeUrls.push({
@@ -144,6 +173,7 @@ export class InteractshStore {
       uniqueId: result.uniqueId,
       createdAt: new Date().toISOString(),
       isActive: true,
+      serverUrl,
     });
 
     return result;
@@ -158,11 +188,18 @@ export class InteractshStore {
   }
 
   async poll(): Promise<void> {
-    if (!this.client || !this.isStarted) {
-      throw new Error("Interactsh client not started");
+    if (!this.isStarted) {
+      throw new Error("Interactsh store not started");
     }
 
-    await this.client.poll();
+    // Poll all clients
+    for (const [serverUrl, { client }] of this.clients) {
+      try {
+        await client.poll();
+      } catch (error) {
+        this.sdk.console.error(`Failed to poll ${serverUrl}: ${error}`);
+      }
+    }
   }
 
   clearInteractions(): void {
