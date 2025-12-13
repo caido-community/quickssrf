@@ -1,5 +1,6 @@
 import type { SDK } from "caido:plugin";
 import type {
+  ActiveUrl,
   GenerateUrlResult,
   Interaction,
   InteractshStartOptions,
@@ -53,4 +54,29 @@ export const getInteractshStatus = (
 ): { isStarted: boolean; interactionCount: number } => {
   const store = InteractshStore.get(sdk);
   return store.getStatus();
+};
+
+// URL Management APIs
+export const getActiveUrls = (sdk: SDK): ActiveUrl[] => {
+  const store = InteractshStore.get(sdk);
+  return store.getActiveUrls();
+};
+
+export const setUrlActive = (
+  sdk: SDK,
+  uniqueId: string,
+  isActive: boolean,
+): boolean => {
+  const store = InteractshStore.get(sdk);
+  return store.setUrlActive(uniqueId, isActive);
+};
+
+export const removeUrl = (sdk: SDK, uniqueId: string): boolean => {
+  const store = InteractshStore.get(sdk);
+  return store.removeUrl(uniqueId);
+};
+
+export const clearUrls = (sdk: SDK): void => {
+  const store = InteractshStore.get(sdk);
+  store.clearUrls();
 };

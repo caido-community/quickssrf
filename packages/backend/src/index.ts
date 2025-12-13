@@ -3,11 +3,15 @@ import type { DefineAPI, SDK } from "caido:plugin";
 import { initializeRSAKeys } from "./services/crypto";
 import {
   clearInteractions,
+  clearUrls,
   generateInteractshUrl,
+  getActiveUrls,
   getInteractions,
   getInteractshStatus,
   getNewInteractions,
   pollInteractsh,
+  removeUrl,
+  setUrlActive,
   startInteractsh,
   stopInteractsh,
 } from "./services/interactshApi";
@@ -29,6 +33,10 @@ export type API = DefineAPI<{
   pollInteractsh: typeof pollInteractsh;
   clearInteractions: typeof clearInteractions;
   getInteractshStatus: typeof getInteractshStatus;
+  getActiveUrls: typeof getActiveUrls;
+  setUrlActive: typeof setUrlActive;
+  removeUrl: typeof removeUrl;
+  clearUrls: typeof clearUrls;
 }>;
 
 export function init(sdk: SDK<API>) {
@@ -53,4 +61,10 @@ export function init(sdk: SDK<API>) {
   sdk.api.register("pollInteractsh", pollInteractsh);
   sdk.api.register("clearInteractions", clearInteractions);
   sdk.api.register("getInteractshStatus", getInteractshStatus);
+
+  // URL Management API
+  sdk.api.register("getActiveUrls", getActiveUrls);
+  sdk.api.register("setUrlActive", setUrlActive);
+  sdk.api.register("removeUrl", removeUrl);
+  sdk.api.register("clearUrls", clearUrls);
 }

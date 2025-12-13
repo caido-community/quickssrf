@@ -15,7 +15,6 @@ export function useLogic() {
     uiStore.setGeneratingUrl(true);
 
     try {
-      handleClearData();
       const url = await interactionStore.generateUrl();
 
       if (!url) {

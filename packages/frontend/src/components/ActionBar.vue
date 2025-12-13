@@ -7,6 +7,7 @@ import { computed, ref } from "vue";
 
 import MultiUrlDialog from "./MultiUrlDialog.vue";
 import SettingsDialog from "./SettingsDialog.vue";
+import UrlManagerDialog from "./UrlManagerDialog.vue";
 
 import { useLogic } from "@/composables/useLogic";
 import { useInteractionStore } from "@/stores/interactionStore";
@@ -19,6 +20,7 @@ const settingsStore = useSettingsStore();
 const { handleGenerateClick, handleManualPoll, handleClearData } = useLogic();
 
 const multiUrlDialogVisible = ref(false);
+const urlManagerDialogVisible = ref(false);
 
 const generateMenuItems = [
   {
@@ -85,6 +87,11 @@ function handleDeleteSelected() {
         @click="handleManualPoll"
       />
       <Button
+        v-tooltip="'Manage generated URLs'"
+        icon="fas fa-list-ul"
+        @click="urlManagerDialogVisible = true"
+      />
+      <Button
         v-tooltip="'Clear all interaction data'"
         :disabled="interactionStore.data.length === 0"
         icon="fas fa-trash"
@@ -100,4 +107,5 @@ function handleDeleteSelected() {
 
   <SettingsDialog />
   <MultiUrlDialog v-model:visible="multiUrlDialogVisible" />
+  <UrlManagerDialog v-model:visible="urlManagerDialogVisible" />
 </template>

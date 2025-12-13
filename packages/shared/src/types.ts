@@ -29,3 +29,10 @@ export interface GenerateUrlResult {
   url: string;
   uniqueId: string;
 }
+
+export interface ActiveUrl {
+  url: string;
+  uniqueId: string;
+  createdAt: string;
+  isActive: boolean;
+}

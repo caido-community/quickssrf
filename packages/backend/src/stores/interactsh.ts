@@ -10,10 +10,18 @@ import {
   type InteractshClient,
 } from "../services/interactsh";
 
+export interface ActiveUrl {
+  url: string;
+  uniqueId: string;
+  createdAt: string;
+  isActive: boolean;
+}
+
 export class InteractshStore {
   private static _instance?: InteractshStore;
   private client: InteractshClient | undefined;
   private interactions: Interaction[] = [];
+  private activeUrls: ActiveUrl[] = [];
   private sdk: SDK;
   private isStarted = false;
   private interactionCounter = 0;
@@ -73,8 +81,24 @@ export class InteractshStore {
         },
         (interaction: Record<string, unknown>) => {
           const parsed = this.parseInteraction(interaction);
-          this.interactions.push(parsed);
-          this.sdk.console.log(`New interaction received: ${parsed.protocol}`);
+
+          // Check if this interaction's URL is still active
+          const fullId = parsed.fullId;
+          const matchingUrl = this.activeUrls.find(
+            (u) => fullId.startsWith(u.uniqueId) || u.uniqueId === fullId,
+          );
+
+          // Only add interaction if URL is active or not tracked (for backwards compatibility)
+          if (!matchingUrl || matchingUrl.isActive) {
+            this.interactions.push(parsed);
+            this.sdk.console.log(
+              `New interaction received: ${parsed.protocol}`,
+            );
+          } else {
+            this.sdk.console.log(
+              `Interaction ignored (URL disabled): ${parsed.fullId}`,
+            );
+          }
         },
       );
 
@@ -112,7 +136,17 @@ export class InteractshStore {
       throw new Error("Interactsh client not started");
     }
 
-    return this.client.generateUrl();
+    const result = this.client.generateUrl();
+
+    // Track this URL as active
+    this.activeUrls.push({
+      url: result.url,
+      uniqueId: result.uniqueId,
+      createdAt: new Date().toISOString(),
+      isActive: true,
+    });
+
+    return result;
   }
 
   getInteractions(): Interaction[] {
@@ -140,5 +174,37 @@ export class InteractshStore {
       isStarted: this.isStarted,
       interactionCount: this.interactions.length,
     };
+  }
+
+  // URL Management methods
+  getActiveUrls(): ActiveUrl[] {
+    return [...this.activeUrls];
+  }
+
+  setUrlActive(uniqueId: string, isActive: boolean): boolean {
+    const url = this.activeUrls.find((u) => u.uniqueId === uniqueId);
+    if (url) {
+      url.isActive = isActive;
+      this.sdk.console.log(
+        `URL ${uniqueId} set to ${isActive ? "active" : "inactive"}`,
+      );
+      return true;
+    }
+    return false;
+  }
+
+  removeUrl(uniqueId: string): boolean {
+    const index = this.activeUrls.findIndex((u) => u.uniqueId === uniqueId);
+    if (index !== -1) {
+      this.activeUrls.splice(index, 1);
+      this.sdk.console.log(`URL ${uniqueId} removed from tracking`);
+      return true;
+    }
+    return false;
+  }
+
+  clearUrls(): void {
+    this.activeUrls = [];
+    this.sdk.console.log("All tracked URLs cleared");
   }
 }
