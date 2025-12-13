@@ -111,6 +111,8 @@ export const useSettingsStore = defineStore("settings", () => {
         await interactionStore.resetClientService();
         interactionStore.clearData();
         uiStore.clearUI();
+        // Clear managed URLs since they belong to the old server configuration
+        sdk.backend.clearUrls();
         sdk.window.showToast("Settings changed. Please generate a new URL.", {
           variant: "info",
         });
@@ -143,6 +145,8 @@ export const useSettingsStore = defineStore("settings", () => {
         await interactionStore.resetClientService();
         interactionStore.clearData();
         uiStore.clearGeneratedUrl();
+        // Clear managed URLs since they belong to the old server configuration
+        sdk.backend.clearUrls();
         sdk.window.showToast("Settings reset. Please generate a new URL.", {
           variant: "info",
         });
