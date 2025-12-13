@@ -177,10 +177,12 @@ export const useInteractionStore = defineStore("interaction", () => {
 
   const tableData = computed(() => {
     return data.value.map((item: Interaction, index: number) => {
+      const date = new Date(item.timestamp);
       return {
         ...item,
         req: index + 1,
-        dateTime: new Date(item.timestamp).toISOString(),
+        dateTime: date.toISOString(),
+        localDateTime: date.toLocaleString(),
         protocol: item.protocol.toUpperCase(),
       };
     });

@@ -4,7 +4,7 @@ import Column from "primevue/column";
 import ContextMenu from "primevue/contextmenu";
 import DataTable from "primevue/datatable";
 
-import { ref } from "vue";
+import { ref, onMounted, onBeforeUnmount, computed, nextTick } from "vue";
 
 import { useLogic } from "@/composables/useLogic";
 import { useEditorStore } from "@/stores/editorStore";
@@ -21,30 +21,35 @@ const contextMenu = ref();
 const contextMenuRow = ref<Interaction | null>(null);
 
 const rowColorOptions = [
-  { label: "Red", color: "#ef4444" },
+  { label: "Red", color: "#f43f5e" },
   { label: "Orange", color: "#f97316" },
-  { label: "Yellow", color: "#eab308" },
-  { label: "Green", color: "#22c55e" },
+  { label: "Yellow", color: "#facc15" },
+  { label: "Lime", color: "#84cc16" },
+  { label: "Cyan", color: "#06b6d4" },
   { label: "Blue", color: "#3b82f6" },
-  { label: "Purple", color: "#a855f7" },
+  { label: "Violet", color: "#8b5cf6" },
   { label: "Pink", color: "#ec4899" },
   { label: "None", color: null },
 ];
+
+function buildColorMenuItems() {
+  return rowColorOptions.map((option) => ({
+    label: option.label,
+    icon: option.color ? "fas fa-circle" : "fas fa-ban",
+    iconColor: option.color || undefined,
+    command: () => {
+      if (contextMenuRow.value) {
+        interactionStore.setRowColor(contextMenuRow.value.uniqueId, option.color);
+      }
+    },
+  }));
+}
 
 const contextMenuItems = ref([
   {
     label: "Set Color",
     icon: "fas fa-palette",
-    items: rowColorOptions.map((option) => ({
-      label: option.label,
-      icon: option.color ? "fas fa-circle" : "fas fa-ban",
-      style: option.color ? { color: option.color } : {},
-      command: () => {
-        if (contextMenuRow.value) {
-          interactionStore.setRowColor(contextMenuRow.value.uniqueId, option.color);
-        }
-      },
-    })),
+    items: buildColorMenuItems(),
   },
   {
     separator: true,
@@ -81,14 +86,29 @@ function deleteRow(uniqueId: string) {
 
 function getRowStyle(data: Interaction) {
   if (!data || !data.uniqueId) return {};
+
+  const isSelected = uiStore.selectedRow?.uniqueId === data.uniqueId;
   const color = interactionStore.getRowColor(data.uniqueId);
+
+  const style: Record<string, string> = {};
+
   if (color) {
-    return { backgroundColor: `${color}20`, borderLeft: `3px solid ${color}` };
+    style.backgroundColor = `${color}20`;
+    style.borderLeft = `3px solid ${color}`;
   }
-  return {};
+
+  if (isSelected) {
+    if (!color) {
+      style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+    }
+    style.outline = '2px solid #3b82f6';
+    style.outlineOffset = '-2px';
+  }
+
+  return style;
 }
 
-function onRowClick(event: { originalEvent: MouseEvent; data: Interaction }) {
+function onRowClick(event: { originalEvent: Event; data: Interaction }) {
   // Don't select row when clicking on checkbox column
   const target = event.originalEvent.target as HTMLElement;
   if (target.closest('.p-selection-column') || target.closest('[data-p-checkbox]') || target.tagName === 'INPUT') {
@@ -96,11 +116,71 @@ function onRowClick(event: { originalEvent: MouseEvent; data: Interaction }) {
   }
   uiStore.selectedRow = event.data;
 }
+
+// Get sorted data for keyboard navigation
+const sortedData = computed(() => {
+  return [...interactionStore.filteredTableData].sort((a, b) => b.req - a.req);
+});
+
+const dataTableRef = ref();
+
+function scrollToSelectedRow(index: number) {
+  nextTick(() => {
+    const tableWrapper = dataTableRef.value?.$el?.querySelector('[data-pc-section="tablecontainer"]');
+    if (!tableWrapper) return;
+
+    const rows = tableWrapper.querySelectorAll('tbody tr[data-pc-section="bodyrow"]');
+    const targetRow = rows[index] as HTMLElement;
+
+    if (targetRow) {
+      targetRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      // Move focus to the new row to sync with our selection
+      targetRow.focus({ preventScroll: true });
+    }
+  });
+}
+
+function handleKeyDown(event: KeyboardEvent) {
+  if (!uiStore.selectedRow) return;
+  if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+
+  // Don't navigate if focus is in an input
+  const target = event.target as HTMLElement;
+  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
+  event.preventDefault();
+
+  const data = sortedData.value;
+  const currentIndex = data.findIndex(item => item.uniqueId === uiStore.selectedRow?.uniqueId);
+
+  if (currentIndex === -1) return;
+
+  let newIndex: number;
+  if (event.key === 'ArrowUp') {
+    newIndex = Math.max(0, currentIndex - 1);
+  } else {
+    newIndex = Math.min(data.length - 1, currentIndex + 1);
+  }
+
+  if (newIndex !== currentIndex && data[newIndex]) {
+    uiStore.selectedRow = data[newIndex];
+    scrollToSelectedRow(newIndex);
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', handleKeyDown);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleKeyDown);
+});
 </script>
 
 <template>
   <div class="flex flex-col h-full">
     <DataTable
+      ref="dataTableRef"
       v-model:selection="interactionStore.selectedRows"
       :value="interactionStore.filteredTableData"
       data-key="uniqueId"
@@ -111,6 +191,8 @@ function onRowClick(event: { originalEvent: MouseEvent; data: Interaction }) {
       striped-rows
       :row-style="getRowStyle"
       :meta-key-selection="false"
+      sort-field="req"
+      :sort-order="-1"
       @row-contextmenu="onRowContextMenu"
       @row-click="onRowClick"
     >
@@ -118,7 +200,13 @@ function onRowClick(event: { originalEvent: MouseEvent; data: Interaction }) {
         <template #header>&nbsp;</template>
       </Column>
       <Column field="req" header="Req #" sortable style="width: 80px" />
-      <Column field="protocol" header="Type" sortable style="width: 100px" />
+      <Column field="protocol" header="Type" sortable style="width: 100px">
+        <template #body="{ data }">
+          <span :class="data.protocol === 'DNS' ? 'text-orange-400' : 'text-green-500'">
+            {{ data.protocol }}
+          </span>
+        </template>
+      </Column>
       <Column
         field="httpPath"
         header="Path"
@@ -127,17 +215,17 @@ function onRowClick(event: { originalEvent: MouseEvent; data: Interaction }) {
         class="truncate"
       />
       <Column
-        field="dateTime"
-        header="Date-Time"
-        sortable
-        style="width: 220px"
-      />
-      <Column field="fullId" header="Payload" sortable />
-      <Column
         field="remoteAddress"
         header="Source"
         sortable
-        style="width: 120px"
+        style="width: 130px"
+      />
+      <Column field="fullId" header="Payload" sortable />
+      <Column
+        field="localDateTime"
+        header="Date-Time"
+        sortable
+        style="width: 180px"
       />
       <Column header="" style="width: 50px">
         <template #body="{ data }">
@@ -184,7 +272,16 @@ function onRowClick(event: { originalEvent: MouseEvent; data: Interaction }) {
       </template>
     </DataTable>
 
-    <ContextMenu ref="contextMenu" :model="contextMenuItems" />
+    <ContextMenu ref="contextMenu" :model="contextMenuItems">
+      <template #itemicon="{ item }">
+        <i
+          v-if="item.icon"
+          :class="item.icon"
+          :style="item.iconColor ? { color: item.iconColor } : {}"
+          class="mr-2"
+        />
+      </template>
+    </ContextMenu>
   </div>
 </template>
 
@@ -226,4 +323,5 @@ function onRowClick(event: { originalEvent: MouseEvent; data: Interaction }) {
     background-position: 12.5rem top;
   }
 }
+
 </style>

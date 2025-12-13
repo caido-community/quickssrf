@@ -41,13 +41,13 @@ function highlightSyntax(query: string): string {
     const andMatch = remaining.match(/^(AND)(?=\s|$)/i);
     const orMatch = remaining.match(/^(OR)(?=\s|$)/i);
 
-    if (andMatch) {
+    if (andMatch && andMatch[1]) {
       result += `<span style="color: ${COLORS.punctuation}">${andMatch[1]}</span>`;
       i += andMatch[1].length;
       continue;
     }
 
-    if (orMatch) {
+    if (orMatch && orMatch[1]) {
       result += `<span style="color: ${COLORS.punctuation}">${orMatch[1]}</span>`;
       i += orMatch[1].length;
       continue;
