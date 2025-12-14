@@ -155,7 +155,7 @@ onBeforeUnmount(() => {
 });
 
 // Available fields
-const fields = ["protocol", "ip", "path", "payload"];
+const fields = ["protocol", "ip", "path", "payload", "source", "tag"];
 
 // Available operators
 const operators = ["eq", "ne", "cont", "ncont", "like", "nlike", "regex", "nregex"];
@@ -190,6 +190,22 @@ const pathValues = computed(() => {
   const values = new Set<string>();
   interactionStore.data.forEach((item) => {
     if (item.httpPath) values.add(item.httpPath);
+  });
+  return Array.from(values);
+});
+
+const sourceValues = computed(() => {
+  const values = new Set<string>();
+  interactionStore.data.forEach((item) => {
+    if (item.remoteAddress) values.add(item.remoteAddress);
+  });
+  return Array.from(values);
+});
+
+const tagValues = computed(() => {
+  const values = new Set<string>();
+  interactionStore.data.forEach((item) => {
+    if (item.tag) values.add(item.tag);
   });
   return Array.from(values);
 });
@@ -258,10 +274,12 @@ function computeSuggestions(query: string): string[] {
     let values: string[] = [];
     if (field === "protocol") {
       values = protocolValues.value;
-    } else if (field === "ip") {
-      values = ipValues.value;
+    } else if (field === "ip" || field === "source") {
+      values = sourceValues.value;
     } else if (field === "path") {
       values = pathValues.value;
+    } else if (field === "tag") {
+      values = tagValues.value;
     }
 
     return values
@@ -449,10 +467,12 @@ function onKeydown(event: KeyboardEvent) {
         let values: string[] = [];
         if (field === "protocol") {
           values = protocolValues.value;
-        } else if (field === "ip") {
-          values = ipValues.value;
+        } else if (field === "ip" || field === "source") {
+          values = sourceValues.value;
         } else if (field === "path") {
           values = pathValues.value;
+        } else if (field === "tag") {
+          values = tagValues.value;
         }
 
         const matchingValue = values.find((v) =>
