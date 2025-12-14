@@ -18,8 +18,13 @@ const interactionStore = useInteractionStore();
 const editorStore = useEditorStore();
 const { handleGenerateClick, handleManualPoll } = useLogic();
 
+function copyToClipboard(text: string) {
+  navigator.clipboard.writeText(text);
+}
+
 const contextMenu = ref();
 const contextMenuRow = ref<Interaction | null>(null);
+const contextMenuField = ref<string | null>(null);
 
 const rowColorOptions = [
   { label: "Red", color: "#f43f5e" },
@@ -46,7 +51,56 @@ function buildColorMenuItems() {
   }));
 }
 
+// Map column fields to filter field names
+const fieldToFilterMap: Record<string, string> = {
+  protocol: "protocol",
+  httpPath: "path",
+  remoteAddress: "source",
+  payloadUrl: "payload",
+  tag: "tag",
+};
+
+function getFilterValueForField(row: Interaction & { payloadUrl?: string }, field: string): string | null {
+  switch (field) {
+    case "protocol":
+      return row.protocol?.toLowerCase() || null;
+    case "httpPath":
+      return row.httpPath || null;
+    case "remoteAddress":
+      return row.remoteAddress || null;
+    case "payloadUrl":
+      return (row as { payloadUrl?: string }).payloadUrl || row.fullId || null;
+    case "tag":
+      return row.tag || null;
+    default:
+      return null;
+  }
+}
+
+function addFilterFromContext() {
+  if (!contextMenuRow.value || !contextMenuField.value) return;
+
+  const filterField = fieldToFilterMap[contextMenuField.value];
+  const value = getFilterValueForField(contextMenuRow.value as Interaction & { payloadUrl?: string }, contextMenuField.value);
+
+  if (!filterField || !value) return;
+
+  const filterExpr = `${filterField}.eq:"${value}"`;
+  const currentFilter = interactionStore.filterQuery.trim();
+
+  if (currentFilter) {
+    interactionStore.setFilterQuery(`${currentFilter} AND ${filterExpr}`);
+  } else {
+    interactionStore.setFilterQuery(filterExpr);
+  }
+}
+
 const contextMenuItems = ref([
+  {
+    label: "Add Filter",
+    icon: "fas fa-filter",
+    command: addFilterFromContext,
+  },
   {
     label: "Set Color",
     icon: "fas fa-palette",
@@ -74,6 +128,27 @@ const contextMenuItems = ref([
 function onRowContextMenu(event: { originalEvent: Event; data: Interaction }) {
   contextMenuRow.value = event.data;
   uiStore.setSelectedRow(event.data);
+
+  // Detect which column was clicked
+  const target = event.originalEvent.target as HTMLElement;
+  const cell = target.closest("td");
+  if (cell) {
+    const row = cell.closest("tr");
+    if (row) {
+      const cells = Array.from(row.querySelectorAll("td"));
+      const cellIndex = cells.indexOf(cell);
+      // Map cell index to field (accounting for checkbox column at index 0)
+      const fieldMap: Record<number, string> = {
+        2: "protocol",    // Type column
+        3: "httpPath",    // Path column
+        4: "remoteAddress", // Source column
+        5: "payloadUrl",  // Payload column
+        6: "tag",         // Tag column
+      };
+      contextMenuField.value = fieldMap[cellIndex] || null;
+    }
+  }
+
   contextMenu.value.show(event.originalEvent);
 }
 
@@ -240,8 +315,22 @@ onBeforeUnmount(() => {
         field="remoteAddress"
         header="Source"
         sortable
-        style="width: 130px"
-      />
+        style="width: 150px"
+      >
+        <template #body="{ data }">
+          <div class="flex items-center gap-1 group">
+            <span>{{ data.remoteAddress }}</span>
+            <Button
+              v-tooltip="'Copy IP'"
+              icon="fas fa-copy"
+              text
+              size="small"
+              class="!p-0 !w-5 !h-5 opacity-0 group-hover:opacity-100 transition-opacity"
+              @click.stop="copyToClipboard(data.remoteAddress)"
+            />
+          </div>
+        </template>
+      </Column>
       <Column field="payloadUrl" header="Payload" sortable />
       <Column field="tag" header="Tag" sortable style="width: 150px">
         <template #body="{ data }">
