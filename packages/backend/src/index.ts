@@ -11,6 +11,7 @@ import {
   getActiveUrls,
   getClientCount,
   getFilter,
+  getFilterEnabled,
   getInteractions,
   getInteractshStatus,
   getNewInteractions,
@@ -18,6 +19,7 @@ import {
   pollInteractsh,
   removeUrl,
   setFilter,
+  setFilterEnabled,
   setInteractionTag,
   setUrlActive,
   startInteractsh,
@@ -52,6 +54,8 @@ export type API = DefineAPI<{
   clearAllData: typeof clearAllData;
   setFilter: typeof setFilter;
   getFilter: typeof getFilter;
+  setFilterEnabled: typeof setFilterEnabled;
+  getFilterEnabled: typeof getFilterEnabled;
   setInteractionTag: typeof setInteractionTag;
 }>;
 
@@ -60,6 +64,7 @@ export type BackendEvents = DefineEvents<{
   onDataChanged: () => void;
   onUrlGenerated: (url: string) => void;
   onFilterChanged: (filter: string) => void;
+  onFilterEnabledChanged: (enabled: boolean) => void;
 }>;
 
 let sdkInstance: SDK<API, BackendEvents> | null = null;
@@ -83,6 +88,12 @@ export function emitUrlGenerated(url: string): void {
 export function emitFilterChanged(filter: string): void {
   if (sdkInstance) {
     sdkInstance.api.send("onFilterChanged", filter);
+  }
+}
+
+export function emitFilterEnabledChanged(enabled: boolean): void {
+  if (sdkInstance) {
+    sdkInstance.api.send("onFilterEnabledChanged", enabled);
   }
 }
 
@@ -128,6 +139,8 @@ export function init(sdk: SDK<API, BackendEvents>) {
   // Filter API
   sdk.api.register("setFilter", setFilter);
   sdk.api.register("getFilter", getFilter);
+  sdk.api.register("setFilterEnabled", setFilterEnabled);
+  sdk.api.register("getFilterEnabled", getFilterEnabled);
 
   // Tag API
   sdk.api.register("setInteractionTag", setInteractionTag);

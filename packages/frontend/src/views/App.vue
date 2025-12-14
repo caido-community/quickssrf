@@ -34,6 +34,7 @@ const openGitHub = () => {
 let dataChangeSubscription: { stop: () => void } | null = null;
 let urlGeneratedSubscription: { stop: () => void } | null = null;
 let filterChangedSubscription: { stop: () => void } | null = null;
+let filterEnabledChangedSubscription: { stop: () => void } | null = null;
 
 onMounted(async () => {
   initializeEditors();
@@ -45,6 +46,7 @@ onMounted(async () => {
   dataChangeSubscription = interactionStore.subscribeToDataChanges();
   urlGeneratedSubscription = interactionStore.subscribeToUrlGenerated();
   filterChangedSubscription = interactionStore.subscribeToFilterChanged();
+  filterEnabledChangedSubscription = interactionStore.subscribeToFilterEnabledChanged();
 });
 
 onUnmounted(() => {
@@ -57,6 +59,9 @@ onUnmounted(() => {
   }
   if (filterChangedSubscription) {
     filterChangedSubscription.stop();
+  }
+  if (filterEnabledChangedSubscription) {
+    filterEnabledChangedSubscription.stop();
   }
 });
 </script>

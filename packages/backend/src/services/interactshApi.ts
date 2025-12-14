@@ -123,6 +123,16 @@ export const getFilter = (sdk: SDK): string => {
   return store.getFilter();
 };
 
+export const setFilterEnabled = (sdk: SDK, enabled: boolean): void => {
+  const store = InteractshStore.get(sdk);
+  store.setFilterEnabled(enabled);
+};
+
+export const getFilterEnabled = (sdk: SDK): boolean => {
+  const store = InteractshStore.get(sdk);
+  return store.getFilterEnabled();
+};
+
 export const setInteractionTag = (
   sdk: SDK,
   uniqueId: string,

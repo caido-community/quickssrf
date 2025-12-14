@@ -16,6 +16,7 @@ export const useInteractionStore = defineStore("interaction", () => {
   const isStarted = ref(false);
   const lastInteractionIndex = ref(0);
   const filterQuery = ref("");
+  const filterEnabled = ref(true);
   const selectedRows = ref<Interaction[]>([]);
   const rowColors = ref<Record<string, string>>({});
   let pollingIntervalId: ReturnType<typeof setInterval> | undefined;
@@ -24,6 +25,8 @@ export const useInteractionStore = defineStore("interaction", () => {
   let skipNextDataChangeEvent = false;
   // Flag to skip next filter change event (when we made the change ourselves)
   let skipNextFilterChangeEvent = false;
+  // Flag to skip next filter enabled change event (when we made the change ourselves)
+  let skipNextFilterEnabledChangeEvent = false;
 
   // Filter condition type: field.operator:"value"
   type FilterCondition = {
@@ -207,10 +210,20 @@ export const useInteractionStore = defineStore("interaction", () => {
   });
 
   const filteredTableData = computed(() => {
+    // If filter is disabled, return all data
+    if (!filterEnabled.value) return tableData.value;
     const groups = parseFilter(filterQuery.value);
     if (groups.length === 0) return tableData.value;
     return tableData.value.filter((item) => matchesFilter(item, groups));
   });
+
+  // Toggle filter enabled/disabled
+  function toggleFilter() {
+    filterEnabled.value = !filterEnabled.value;
+    // Skip next event since we're making the change
+    skipNextFilterEnabledChangeEvent = true;
+    sdk.backend.setFilterEnabled(filterEnabled.value);
+  }
 
   function processInteraction(
     interaction: Omit<Interaction, "httpPath">,
@@ -572,6 +585,21 @@ export const useInteractionStore = defineStore("interaction", () => {
     return subscription;
   }
 
+  // Subscribe to filter enabled change events
+  function subscribeToFilterEnabledChanged() {
+    const subscription = sdk.backend.onEvent("onFilterEnabledChanged", (enabled: boolean) => {
+      // Skip if we made the change ourselves
+      if (skipNextFilterEnabledChangeEvent) {
+        skipNextFilterEnabledChangeEvent = false;
+        console.log("Filter enabled changed event received, skipping (self-triggered)");
+        return;
+      }
+      console.log("Filter enabled changed event received:", enabled);
+      filterEnabled.value = enabled;
+    });
+    return subscription;
+  }
+
   // Update filter and sync to backend
   function setFilterQuery(value: string) {
     if (filterQuery.value !== value) {
@@ -588,6 +616,12 @@ export const useInteractionStore = defineStore("interaction", () => {
     if (!error && filter !== undefined) {
       filterQuery.value = filter;
       console.log(`Loaded filter from backend: "${filter}"`);
+    }
+
+    const { data: enabled, error: enabledError } = await tryCatch(sdk.backend.getFilterEnabled());
+    if (!enabledError && enabled !== undefined) {
+      filterEnabled.value = enabled;
+      console.log(`Loaded filter enabled from backend: ${enabled}`);
     }
   }
 
@@ -639,8 +673,10 @@ export const useInteractionStore = defineStore("interaction", () => {
     tableData,
     filteredTableData,
     filterQuery,
+    filterEnabled,
     selectedRows,
     rowColors,
+    toggleFilter,
     generateUrl,
     generateMultipleUrls,
     manualPoll,
@@ -656,6 +692,7 @@ export const useInteractionStore = defineStore("interaction", () => {
     subscribeToDataChanges,
     subscribeToUrlGenerated,
     subscribeToFilterChanged,
+    subscribeToFilterEnabledChanged,
     setFilterQuery,
     loadFilter,
     setInteractionTag,

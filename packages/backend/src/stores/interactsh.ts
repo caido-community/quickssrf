@@ -8,7 +8,7 @@ import type {
   InteractshStartOptions,
 } from "shared";
 
-import { emitDataChanged, emitFilterChanged, emitUrlGenerated } from "../index";
+import { emitDataChanged, emitFilterChanged, emitFilterEnabledChanged, emitUrlGenerated } from "../index";
 import {
   createInteractshClient,
   type InteractshClient,
@@ -33,6 +33,7 @@ interface PersistedData {
   activeUrls: ActiveUrl[];
   interactionCounter: number;
   filter: string;
+  filterEnabled: boolean;
 }
 
 export class InteractshStore {
@@ -41,6 +42,7 @@ export class InteractshStore {
   private interactions: Interaction[] = [];
   private activeUrls: ActiveUrl[] = [];
   private filter = "";
+  private filterEnabled = true;
   private sdk: SDK;
   private isStarted = false;
   private interactionCounter = 0;
@@ -68,6 +70,7 @@ export class InteractshStore {
       this.activeUrls = parsed.activeUrls || [];
       this.interactionCounter = parsed.interactionCounter || 0;
       this.filter = parsed.filter || "";
+      this.filterEnabled = parsed.filterEnabled !== false; // Default to true
       this.sdk.console.log(
         `Loaded persisted data: ${this.interactions.length} interactions, ${this.activeUrls.length} URLs`,
       );
@@ -77,6 +80,7 @@ export class InteractshStore {
       this.activeUrls = [];
       this.interactionCounter = 0;
       this.filter = "";
+      this.filterEnabled = true;
     }
   }
 
@@ -87,6 +91,7 @@ export class InteractshStore {
         activeUrls: this.activeUrls,
         interactionCounter: this.interactionCounter,
         filter: this.filter,
+        filterEnabled: this.filterEnabled,
       };
       fs.writeFileSync(this.dataPath, JSON.stringify(persistData, null, 2));
       if (notify) {
@@ -384,6 +389,19 @@ export class InteractshStore {
 
   getFilter(): string {
     return this.filter;
+  }
+
+  // Filter enabled management
+  setFilterEnabled(enabled: boolean): void {
+    if (this.filterEnabled !== enabled) {
+      this.filterEnabled = enabled;
+      this.savePersistedData(false);
+      emitFilterEnabledChanged(enabled);
+    }
+  }
+
+  getFilterEnabled(): boolean {
+    return this.filterEnabled;
   }
 
   // Update tag for an interaction

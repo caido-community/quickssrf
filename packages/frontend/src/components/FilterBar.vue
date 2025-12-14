@@ -530,7 +530,7 @@ watch(
 </script>
 
 <template>
-  <div class="filter-bar">
+  <div class="filter-bar" :class="{ 'filter-disabled': !interactionStore.filterEnabled }">
     <i class="fas fa-search text-surface-400 shrink-0" />
     <div class="autocomplete-wrapper">
       <AutoComplete
@@ -573,6 +573,17 @@ watch(
     </div>
     <Button
       v-if="localFilter"
+      v-tooltip="interactionStore.filterEnabled ? 'Disable filter' : 'Enable filter'"
+      :icon="interactionStore.filterEnabled ? 'fas fa-toggle-on' : 'fas fa-toggle-off'"
+      :severity="interactionStore.filterEnabled ? 'primary' : 'secondary'"
+      text
+      size="small"
+      class="shrink-0"
+      @click="interactionStore.toggleFilter"
+    />
+    <Button
+      v-if="localFilter"
+      v-tooltip="'Clear filter'"
       icon="fas fa-filter-circle-xmark"
       severity="secondary"
       text
@@ -589,6 +600,10 @@ watch(
   align-items: center;
   gap: 0.5rem;
   width: 100%;
+}
+
+.filter-bar.filter-disabled .autocomplete-wrapper {
+  opacity: 0.5;
 }
 
 .autocomplete-wrapper {
