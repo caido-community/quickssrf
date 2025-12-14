@@ -46,6 +46,77 @@ const selectedCount = computed(() => interactionStore.selectedRows.length);
 function handleDeleteSelected() {
   interactionStore.deleteSelected();
 }
+
+// Export functions
+function exportToCSV() {
+  const data = interactionStore.filteredTableData;
+  if (data.length === 0) return;
+
+  const headers = ["Req #", "Type", "Path", "Source", "Payload", "Tag", "Date-Time"];
+  const rows = data.map((item) => [
+    item.req,
+    item.protocol,
+    item.httpPath || "",
+    item.remoteAddress,
+    item.fullId,
+    item.tag || "",
+    item.localDateTime,
+  ]);
+
+  const csvContent = [
+    headers.join(","),
+    ...rows.map((row) =>
+      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+    ),
+  ].join("\n");
+
+  downloadFile(csvContent, "quickssrf-export.csv", "text/csv");
+}
+
+function exportToJSON() {
+  const data = interactionStore.filteredTableData;
+  if (data.length === 0) return;
+
+  const exportData = data.map((item) => ({
+    req: item.req,
+    protocol: item.protocol,
+    httpPath: item.httpPath || "",
+    remoteAddress: item.remoteAddress,
+    fullId: item.fullId,
+    tag: item.tag || null,
+    timestamp: item.timestamp,
+    rawRequest: item.rawRequest,
+    rawResponse: item.rawResponse,
+  }));
+
+  const jsonContent = JSON.stringify(exportData, null, 2);
+  downloadFile(jsonContent, "quickssrf-export.json", "application/json");
+}
+
+function downloadFile(content: string, filename: string, mimeType: string) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+const exportMenuItems = [
+  {
+    label: "Export as CSV",
+    icon: "fas fa-file-csv",
+    command: exportToCSV,
+  },
+  {
+    label: "Export as JSON",
+    icon: "fas fa-file-code",
+    command: exportToJSON,
+  },
+];
 </script>
 
 <template>
@@ -94,6 +165,13 @@ function handleDeleteSelected() {
         :loading="uiStore.isPolling"
         :disabled="!uiStore.generatedUrl"
         @click="handleManualPoll"
+      />
+      <SplitButton
+        v-tooltip="'Export interactions data'"
+        icon="fas fa-download"
+        :model="exportMenuItems"
+        :disabled="interactionStore.filteredTableData.length === 0"
+        @click="exportToCSV"
       />
       <Button
         v-tooltip="'Manage generated URLs'"
