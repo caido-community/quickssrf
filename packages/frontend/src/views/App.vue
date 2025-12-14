@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Button from "primevue/button";
+import ContextMenu from "primevue/contextmenu";
 import Splitter from "primevue/splitter";
 import SplitterPanel from "primevue/splitterpanel";
 import Tooltip from "primevue/tooltip";
@@ -13,7 +14,15 @@ import { useInteractionStore } from "@/stores/interactionStore";
 import { useUIStore } from "@/stores/uiStore";
 
 const vTooltip = Tooltip;
-const { requestEl, responseEl, initializeEditors } = useLogic();
+const { requestEl, responseEl, contextMenuRef, initializeEditors, copySelectedText } = useLogic();
+
+const contextMenuItems = [
+  {
+    label: "Copy",
+    icon: "fas fa-copy",
+    command: () => copySelectedText(),
+  },
+];
 
 const uiStore = useUIStore();
 const interactionStore = useInteractionStore();
@@ -114,4 +123,7 @@ onUnmounted(() => {
       </div>
     </SplitterPanel>
   </Splitter>
+
+  <!-- Context menu for editors -->
+  <ContextMenu ref="contextMenuRef" :model="contextMenuItems" />
 </template>

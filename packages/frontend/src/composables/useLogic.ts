@@ -1,9 +1,20 @@
+import type { EditorView } from "@codemirror/view";
 import { ref, watch } from "vue";
 
 import { useSDK } from "@/plugins/sdk";
 import { useEditorStore } from "@/stores/editorStore";
 import { useInteractionStore } from "@/stores/interactionStore";
 import { useUIStore } from "@/stores/uiStore";
+
+// Get selected text from CodeMirror editor
+function getEditorSelectedText(editorView: EditorView): string {
+  const state = editorView.state;
+  const selection = state.selection.main;
+  if (selection.from === selection.to) {
+    return "";
+  }
+  return state.sliceDoc(selection.from, selection.to);
+}
 
 export function useLogic() {
   const interactionStore = useInteractionStore();
@@ -58,6 +69,9 @@ export function useLogic() {
 
   const requestEl = ref<HTMLElement | undefined>(undefined);
   const responseEl = ref<HTMLElement | undefined>(undefined);
+  const contextMenuRef = ref<{ show: (event: MouseEvent) => void }>();
+  const pendingCopyText = ref("");
+
   const initializeEditors = () => {
     const responseEditor = sdk.ui.httpResponseEditor();
     const requestEditor = sdk.ui.httpRequestEditor();
@@ -73,6 +87,22 @@ export function useLogic() {
       editorStore.setResponseEditorRef(responseEditorEl);
       editorStore.setRequestEditorRef(requestEditorEl);
     }
+
+    // Add context menu handlers
+    const handleContextMenu = (editorView: EditorView) => (event: MouseEvent) => {
+      const selectedText = getEditorSelectedText(editorView);
+      if (selectedText && contextMenuRef.value) {
+        event.preventDefault();
+        pendingCopyText.value = selectedText;
+        contextMenuRef.value.show(event);
+      }
+    };
+
+    const requestContextHandler = handleContextMenu(requestEditor.getEditorView());
+    const responseContextHandler = handleContextMenu(responseEditor.getEditorView());
+
+    requestEditorEl?.addEventListener("contextmenu", requestContextHandler);
+    responseEditorEl?.addEventListener("contextmenu", responseContextHandler);
 
     if (uiStore.selectedRow) {
       editorStore.updateEditorContent(uiStore.selectedRow);
@@ -99,6 +129,10 @@ export function useLogic() {
 
       editorStore.eventBus.removeEventListener("refreshEditors", eventHandler);
 
+      // Remove context menu handlers
+      requestEditorEl?.removeEventListener("contextmenu", requestContextHandler);
+      responseEditorEl?.removeEventListener("contextmenu", responseContextHandler);
+
       if (responseEditorEl) {
         responseEditorEl.remove();
       }
@@ -114,13 +148,23 @@ export function useLogic() {
     editorStore.eventBus.addEventListener("refreshEditors", eventHandler);
   };
 
+  const copySelectedText = () => {
+    if (pendingCopyText.value) {
+      navigator.clipboard.writeText(pendingCopyText.value);
+      sdk.window.showToast("Copied to clipboard", { variant: "success" });
+    }
+  };
+
   return {
     requestEl,
     responseEl,
+    contextMenuRef,
+    pendingCopyText,
 
     handleGenerateClick,
     handleManualPoll,
     handleClearData,
     initializeEditors,
+    copySelectedText,
   };
 }
