@@ -10,12 +10,14 @@ import {
   generateInteractshUrl,
   getActiveUrls,
   getClientCount,
+  getFilter,
   getInteractions,
   getInteractshStatus,
   getNewInteractions,
   initializeClients,
   pollInteractsh,
   removeUrl,
+  setFilter,
   setUrlActive,
   startInteractsh,
   stopInteractsh,
@@ -47,12 +49,15 @@ export type API = DefineAPI<{
   initializeClients: typeof initializeClients;
   getClientCount: typeof getClientCount;
   clearAllData: typeof clearAllData;
+  setFilter: typeof setFilter;
+  getFilter: typeof getFilter;
 }>;
 
 // Events that can be sent from backend to frontend
 export type BackendEvents = DefineEvents<{
   onDataChanged: () => void;
   onUrlGenerated: (url: string) => void;
+  onFilterChanged: (filter: string) => void;
 }>;
 
 let sdkInstance: SDK<API, BackendEvents> | null = null;
@@ -70,6 +75,12 @@ export function emitDataChanged(): void {
 export function emitUrlGenerated(url: string): void {
   if (sdkInstance) {
     sdkInstance.api.send("onUrlGenerated", url);
+  }
+}
+
+export function emitFilterChanged(filter: string): void {
+  if (sdkInstance) {
+    sdkInstance.api.send("onFilterChanged", filter);
   }
 }
 
@@ -111,4 +122,8 @@ export function init(sdk: SDK<API, BackendEvents>) {
 
   // Data Management API
   sdk.api.register("clearAllData", clearAllData);
+
+  // Filter API
+  sdk.api.register("setFilter", setFilter);
+  sdk.api.register("getFilter", getFilter);
 }

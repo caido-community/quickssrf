@@ -24,14 +24,18 @@ const openGitHub = () => {
 
 let dataChangeSubscription: { stop: () => void } | null = null;
 let urlGeneratedSubscription: { stop: () => void } | null = null;
+let filterChangedSubscription: { stop: () => void } | null = null;
 
 onMounted(async () => {
   initializeEditors();
   // Load persisted data from backend
   await interactionStore.loadPersistedData();
+  // Load filter from backend
+  await interactionStore.loadFilter();
   // Subscribe to backend events
   dataChangeSubscription = interactionStore.subscribeToDataChanges();
   urlGeneratedSubscription = interactionStore.subscribeToUrlGenerated();
+  filterChangedSubscription = interactionStore.subscribeToFilterChanged();
 });
 
 onUnmounted(() => {
@@ -41,6 +45,9 @@ onUnmounted(() => {
   }
   if (urlGeneratedSubscription) {
     urlGeneratedSubscription.stop();
+  }
+  if (filterChangedSubscription) {
+    filterChangedSubscription.stop();
   }
 });
 </script>
@@ -59,7 +66,7 @@ onUnmounted(() => {
           <Button
             v-tooltip="'Support the project on GitHub'"
             label="Star on GitHub"
-            icon="fas fa-star"
+            icon="fas fa-star star-icon"
             class="font-medium"
             @click="openGitHub"
           />

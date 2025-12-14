@@ -8,7 +8,7 @@ import type {
   InteractshStartOptions,
 } from "shared";
 
-import { emitDataChanged, emitUrlGenerated } from "../index";
+import { emitDataChanged, emitFilterChanged, emitUrlGenerated } from "../index";
 import {
   createInteractshClient,
   type InteractshClient,
@@ -31,6 +31,7 @@ interface PersistedData {
   interactions: Interaction[];
   activeUrls: ActiveUrl[];
   interactionCounter: number;
+  filter: string;
 }
 
 export class InteractshStore {
@@ -38,6 +39,7 @@ export class InteractshStore {
   private clients: Map<string, ServerClient> = new Map();
   private interactions: Interaction[] = [];
   private activeUrls: ActiveUrl[] = [];
+  private filter = "";
   private sdk: SDK;
   private isStarted = false;
   private interactionCounter = 0;
@@ -64,6 +66,7 @@ export class InteractshStore {
       this.interactions = parsed.interactions || [];
       this.activeUrls = parsed.activeUrls || [];
       this.interactionCounter = parsed.interactionCounter || 0;
+      this.filter = parsed.filter || "";
       this.sdk.console.log(
         `Loaded persisted data: ${this.interactions.length} interactions, ${this.activeUrls.length} URLs`,
       );
@@ -72,6 +75,7 @@ export class InteractshStore {
       this.interactions = [];
       this.activeUrls = [];
       this.interactionCounter = 0;
+      this.filter = "";
     }
   }
 
@@ -81,6 +85,7 @@ export class InteractshStore {
         interactions: this.interactions,
         activeUrls: this.activeUrls,
         interactionCounter: this.interactionCounter,
+        filter: this.filter,
       };
       fs.writeFileSync(this.dataPath, JSON.stringify(persistData, null, 2));
       if (notify) {
@@ -239,10 +244,12 @@ export class InteractshStore {
     return this.interactions.slice(lastIndex);
   }
 
-  async poll(): Promise<void> {
+  async poll(notifyOthers = false): Promise<void> {
     if (!this.isStarted) {
       throw new Error("Interactsh store not started");
     }
+
+    const countBefore = this.interactions.length;
 
     // Poll all clients
     for (const [serverUrl, { client }] of this.clients) {
@@ -251,6 +258,11 @@ export class InteractshStore {
       } catch (error) {
         this.sdk.console.error(`Failed to poll ${serverUrl}: ${error}`);
       }
+    }
+
+    // If notifyOthers is true and we got new interactions, emit event
+    if (notifyOthers && this.interactions.length > countBefore) {
+      emitDataChanged();
     }
   }
 
@@ -355,5 +367,18 @@ export class InteractshStore {
   // Get count of initialized clients
   getClientCount(): number {
     return this.clients.size;
+  }
+
+  // Filter management
+  setFilter(filter: string): void {
+    if (this.filter !== filter) {
+      this.filter = filter;
+      this.savePersistedData(false);
+      emitFilterChanged(filter);
+    }
+  }
+
+  getFilter(): string {
+    return this.filter;
   }
 }

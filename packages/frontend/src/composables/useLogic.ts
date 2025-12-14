@@ -31,7 +31,11 @@ export function useLogic() {
 
   const handleManualPoll = async () => {
     uiStore.setPolling(true);
+    // Poll for new interactions
     await interactionStore.manualPoll();
+    // Sync data and filter from backend
+    await interactionStore.reloadData();
+    await interactionStore.loadFilter();
     uiStore.setPolling(false);
   };
 

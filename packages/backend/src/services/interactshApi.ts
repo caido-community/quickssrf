@@ -42,9 +42,9 @@ export const getNewInteractions = (
   return store.getNewInteractions(lastIndex);
 };
 
-export const pollInteractsh = async (sdk: SDK): Promise<void> => {
+export const pollInteractsh = async (sdk: SDK, notifyOthers = false): Promise<void> => {
   const store = InteractshStore.get(sdk);
-  return store.poll();
+  return store.poll(notifyOthers);
 };
 
 export const clearInteractions = (sdk: SDK): void => {
@@ -110,4 +110,14 @@ export const initializeClients = async (
 export const getClientCount = (sdk: SDK): number => {
   const store = InteractshStore.get(sdk);
   return store.getClientCount();
+};
+
+export const setFilter = (sdk: SDK, filter: string): void => {
+  const store = InteractshStore.get(sdk);
+  store.setFilter(filter);
+};
+
+export const getFilter = (sdk: SDK): string => {
+  const store = InteractshStore.get(sdk);
+  return store.getFilter();
 };

@@ -21,6 +21,32 @@ const autocompleteRef = ref();
 const highlightOverlay = ref<HTMLElement>();
 const inputScrollLeft = ref(0);
 
+// Local model for the input - syncs with store
+const localFilter = ref(interactionStore.filterQuery);
+
+// Debounce timer for syncing to backend
+let syncTimeout: ReturnType<typeof setTimeout> | undefined;
+
+// Sync local filter to store when user types (with debounce)
+function syncFilterToBackend() {
+  if (syncTimeout) {
+    clearTimeout(syncTimeout);
+  }
+  syncTimeout = setTimeout(() => {
+    interactionStore.setFilterQuery(localFilter.value);
+  }, 300); // 300ms debounce
+}
+
+// Keep local filter in sync with store (for external changes)
+watch(
+  () => interactionStore.filterQuery,
+  (newValue) => {
+    if (localFilter.value !== newValue) {
+      localFilter.value = newValue;
+    }
+  },
+);
+
 // Syntax highlighting function
 function highlightSyntax(query: string): string {
   if (!query) return "";
@@ -104,7 +130,7 @@ function escapeHtml(text: string): string {
 }
 
 // Computed highlighted HTML
-const highlightedQuery = computed(() => highlightSyntax(interactionStore.filterQuery));
+const highlightedQuery = computed(() => highlightSyntax(localFilter.value));
 
 // Sync scroll position
 function syncScroll() {
@@ -275,7 +301,8 @@ function onSelect(event: { value: string }) {
     newQuery = `${prefix}${selected} `;
   }
 
-  interactionStore.filterQuery = newQuery;
+  localFilter.value = newQuery;
+  interactionStore.setFilterQuery(newQuery);
 
   // Update suggestions for new query
   nextTick(() => {
@@ -311,11 +338,21 @@ function triggerSearch() {
   }
 }
 
+function updateFilter(newQuery: string) {
+  localFilter.value = newQuery;
+  interactionStore.setFilterQuery(newQuery);
+}
+
+function clearLocalFilter() {
+  localFilter.value = "";
+  interactionStore.setFilterQuery("");
+}
+
 function onKeydown(event: KeyboardEvent) {
   if (event.key === "Tab") {
     event.preventDefault();
 
-    const query = interactionStore.filterQuery;
+    const query = localFilter.value;
     const { prefix, token } = getLastToken(query);
 
     // Single suggestion - autocomplete it
@@ -336,7 +373,7 @@ function onKeydown(event: KeyboardEvent) {
         newQuery = `${prefix}${selected} `;
       }
 
-      interactionStore.filterQuery = newQuery;
+      updateFilter(newQuery);
 
       nextTick(() => {
         suggestions.value = computeSuggestions(newQuery);
@@ -357,7 +394,7 @@ function onKeydown(event: KeyboardEvent) {
         const matchingField = fields.find((f) => f.startsWith(lowerToken));
         if (matchingField) {
           const newQuery = `${prefix}${matchingField}.`;
-          interactionStore.filterQuery = newQuery;
+          updateFilter(newQuery);
           nextTick(() => {
             suggestions.value = computeSuggestions(newQuery);
             focusInput();
@@ -371,7 +408,7 @@ function onKeydown(event: KeyboardEvent) {
         );
         if (matchingLogical) {
           const newQuery = `${prefix}${matchingLogical} `;
-          interactionStore.filterQuery = newQuery;
+          updateFilter(newQuery);
           nextTick(() => {
             suggestions.value = computeSuggestions(newQuery);
             focusInput();
@@ -388,7 +425,7 @@ function onKeydown(event: KeyboardEvent) {
         const matchingOp = operators.find((op) => op.startsWith(opPrefix));
         if (matchingOp) {
           const newQuery = `${prefix}${field}.${matchingOp}:""`;
-          interactionStore.filterQuery = newQuery;
+          updateFilter(newQuery);
           nextTick(() => {
             suggestions.value = computeSuggestions(newQuery);
             focusInputWithOffset(1); // Position cursor between quotes
@@ -423,7 +460,7 @@ function onKeydown(event: KeyboardEvent) {
         );
         if (matchingValue) {
           const newQuery = `${prefix}${beforeColon}:"${matchingValue}" `;
-          interactionStore.filterQuery = newQuery;
+          updateFilter(newQuery);
           nextTick(() => {
             suggestions.value = computeSuggestions(newQuery);
             focusInput();
@@ -436,11 +473,12 @@ function onKeydown(event: KeyboardEvent) {
   }
 }
 
-// Watch for manual input changes to update suggestions
+// Watch for local filter changes to update suggestions and sync to backend
 watch(
-  () => interactionStore.filterQuery,
+  localFilter,
   (newQuery) => {
     suggestions.value = computeSuggestions(newQuery);
+    syncFilterToBackend();
   },
 );
 </script>
@@ -451,7 +489,7 @@ watch(
     <div class="autocomplete-wrapper">
       <AutoComplete
         ref="autocompleteRef"
-        v-model="interactionStore.filterQuery"
+        v-model="localFilter"
         :suggestions="suggestions"
         placeholder='protocol.eq:"dns" AND path.cont:"admin" (Tab to autocomplete)'
         fluid
@@ -479,7 +517,7 @@ watch(
         @input="syncScroll"
       />
       <div
-        v-if="interactionStore.filterQuery"
+        v-if="localFilter"
         ref="highlightOverlay"
         class="highlight-overlay"
         :style="{ transform: `translateX(-${inputScrollLeft}px)` }"
@@ -487,13 +525,13 @@ watch(
       />
     </div>
     <Button
-      v-if="interactionStore.filterQuery"
+      v-if="localFilter"
       icon="fas fa-filter-circle-xmark"
       severity="secondary"
       text
       size="small"
       class="shrink-0"
-      @click="interactionStore.clearFilter"
+      @click="clearLocalFilter"
     />
   </div>
 </template>

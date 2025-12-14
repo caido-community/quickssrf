@@ -22,6 +22,8 @@ export const useInteractionStore = defineStore("interaction", () => {
 
   // Flag to skip next data change event (when we made the change ourselves)
   let skipNextDataChangeEvent = false;
+  // Flag to skip next filter change event (when we made the change ourselves)
+  let skipNextFilterChangeEvent = false;
 
   // Filter condition type: field.operator:"value"
   type FilterCondition = {
@@ -349,8 +351,11 @@ export const useInteractionStore = defineStore("interaction", () => {
       throw new Error("Client service not initialized");
     }
 
-    // Force backend to poll the Interactsh server
-    await sdk.backend.pollInteractsh();
+    // Skip next event since we're making the change ourselves
+    skipNextDataChangeEvent = true;
+
+    // Force backend to poll the Interactsh server (notify other tabs)
+    await sdk.backend.pollInteractsh(true);
     // Then fetch the new interactions
     await fetchNewInteractions();
   }
@@ -536,6 +541,40 @@ export const useInteractionStore = defineStore("interaction", () => {
     return subscription;
   }
 
+  // Subscribe to filter change events
+  function subscribeToFilterChanged() {
+    const subscription = sdk.backend.onEvent("onFilterChanged", (filter: string) => {
+      // Skip if we made the change ourselves
+      if (skipNextFilterChangeEvent) {
+        skipNextFilterChangeEvent = false;
+        console.log("Filter changed event received, skipping (self-triggered)");
+        return;
+      }
+      console.log("Filter changed event received:", filter);
+      filterQuery.value = filter;
+    });
+    return subscription;
+  }
+
+  // Update filter and sync to backend
+  function setFilterQuery(value: string) {
+    if (filterQuery.value !== value) {
+      filterQuery.value = value;
+      // Skip next event since we're making the change
+      skipNextFilterChangeEvent = true;
+      sdk.backend.setFilter(value);
+    }
+  }
+
+  // Load filter from backend
+  async function loadFilter() {
+    const { data: filter, error } = await tryCatch(sdk.backend.getFilter());
+    if (!error && filter !== undefined) {
+      filterQuery.value = filter;
+      console.log(`Loaded filter from backend: "${filter}"`);
+    }
+  }
+
   // Generate multiple URLs
   async function generateMultipleUrls(count: number): Promise<string[]> {
     const initialized = await initializeService();
@@ -585,5 +624,8 @@ export const useInteractionStore = defineStore("interaction", () => {
     reloadData,
     subscribeToDataChanges,
     subscribeToUrlGenerated,
+    subscribeToFilterChanged,
+    setFilterQuery,
+    loadFilter,
   };
 });
