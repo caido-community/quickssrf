@@ -166,6 +166,8 @@ const logicalOps = ["AND", "OR"];
 const suggestions = ref<string[]>([]);
 // Store the prefix before selection happens
 let prefixBeforeSelect = "";
+// Flag to indicate we should reopen after selection
+let shouldReopenAfterSelect = false;
 
 // Get unique values from current data
 const protocolValues = computed(() => {
@@ -175,14 +177,6 @@ const protocolValues = computed(() => {
   });
   values.add("dns");
   values.add("http");
-  return Array.from(values);
-});
-
-const ipValues = computed(() => {
-  const values = new Set<string>();
-  interactionStore.data.forEach((item) => {
-    if (item.remoteAddress) values.add(item.remoteAddress);
-  });
   return Array.from(values);
 });
 
@@ -211,24 +205,29 @@ const tagValues = computed(() => {
 });
 
 function getLastToken(query: string): { prefix: string; token: string } {
-  const trimmed = query.trimEnd();
-  const lastSpaceIndex = trimmed.lastIndexOf(" ");
+  // Don't trim - we need to detect trailing spaces
+  const lastSpaceIndex = query.lastIndexOf(" ");
   if (lastSpaceIndex === -1) {
-    return { prefix: "", token: trimmed };
+    return { prefix: "", token: query };
   }
   return {
-    prefix: trimmed.substring(0, lastSpaceIndex + 1),
-    token: trimmed.substring(lastSpaceIndex + 1),
+    prefix: query.substring(0, lastSpaceIndex + 1),
+    token: query.substring(lastSpaceIndex + 1),
   };
 }
 
 function computeSuggestions(query: string): string[] {
-  const { token } = getLastToken(query);
+  const { prefix, token } = getLastToken(query);
   const lowerToken = token.toLowerCase();
 
-  // Empty - show all fields
+  // Empty token - show fields, and AND/OR if there's already an expression
   if (!token) {
-    return fields.map((f) => `${f}.`);
+    const fieldSuggestions = fields.map((f) => `${f}.`);
+    // If there's a prefix (meaning we already have an expression), also suggest AND/OR
+    if (prefix.trim()) {
+      return [...logicalOps, ...fieldSuggestions];
+    }
+    return fieldSuggestions;
   }
 
   // Check structure: field.operator:"value" or field.operator:value
@@ -305,18 +304,23 @@ function onSelect(event: { value: string }) {
 
   let newQuery: string;
   let cursorOffset = 0; // Offset from end of string for cursor position
+  let shouldShowNextSuggestions = false;
 
   if (logicalOps.includes(selected)) {
     newQuery = `${prefix}${selected} `;
+    shouldShowNextSuggestions = true; // Show field suggestions after AND/OR
   } else if (selected.endsWith(":")) {
     // Operator selected - add quotes and position cursor between them
     newQuery = `${prefix}${selected}""`;
     cursorOffset = 1; // Position cursor before the closing quote
+    shouldShowNextSuggestions = true; // Show value suggestions
   } else if (selected.endsWith(".")) {
     newQuery = `${prefix}${selected}`;
+    shouldShowNextSuggestions = true; // Show operator suggestions after field
   } else {
     // Value selected - add space
     newQuery = `${prefix}${selected} `;
+    shouldShowNextSuggestions = true; // Show AND/OR or field suggestions
   }
 
   localFilter.value = newQuery;
@@ -324,9 +328,31 @@ function onSelect(event: { value: string }) {
 
   // Update suggestions for new query
   nextTick(() => {
-    suggestions.value = computeSuggestions(newQuery);
+    const newSuggestions = computeSuggestions(newQuery);
+    suggestions.value = newSuggestions;
+    prefixBeforeSelect = getLastToken(newQuery).prefix;
     focusInputWithOffset(cursorOffset);
+
+    // Set flag to reopen dropdown after it closes
+    if (shouldShowNextSuggestions && newSuggestions.length > 0) {
+      shouldReopenAfterSelect = true;
+    }
   });
+}
+
+function onBeforeHide() {
+  // If we should reopen after selection, do it in nextTick
+  if (shouldReopenAfterSelect) {
+    shouldReopenAfterSelect = false;
+    nextTick(() => {
+      // Recompute suggestions for current query and show
+      suggestions.value = computeSuggestions(localFilter.value);
+      prefixBeforeSelect = getLastToken(localFilter.value).prefix;
+      nextTick(() => {
+        autocompleteRef.value?.show();
+      });
+    });
+  }
 }
 
 function focusInput() {
@@ -533,6 +559,7 @@ watch(
         }"
         @complete="search"
         @item-select="onSelect"
+        @before-hide="onBeforeHide"
         @keydown="onKeydown"
         @input="syncScroll"
       />
