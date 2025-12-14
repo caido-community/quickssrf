@@ -57,13 +57,21 @@ const handleKeyDown = (event: KeyboardEvent) => {
           placeholder="Select a server"
           class="w-full"
         />
-        <small v-if="settingsStore.serverMode === 'random'" class="text-gray-500">
+        <small
+          v-if="settingsStore.serverMode === 'random'"
+          class="text-gray-500"
+        >
           A random server will be selected for each URL generation
         </small>
       </div>
 
-      <div v-if="settingsStore.serverMode === 'custom'" class="flex flex-col gap-2">
-        <label for="serverURL" class="font-medium text-sm">Custom Server URL</label>
+      <div
+        v-if="settingsStore.serverMode === 'custom'"
+        class="flex flex-col gap-2"
+      >
+        <label for="serverURL" class="font-medium text-sm"
+          >Custom Server URL</label
+        >
         <InputText
           id="serverURL"
           v-model="settingsStore.serverURL"

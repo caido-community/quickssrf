@@ -14,7 +14,13 @@ import { useInteractionStore } from "@/stores/interactionStore";
 import { useUIStore } from "@/stores/uiStore";
 
 const vTooltip = Tooltip;
-const { requestEl, responseEl, contextMenuRef, initializeEditors, copySelectedText } = useLogic();
+const {
+  requestEl,
+  responseEl,
+  contextMenuRef,
+  initializeEditors,
+  copySelectedText,
+} = useLogic();
 
 const contextMenuItems = [
   {
@@ -31,10 +37,10 @@ const openGitHub = () => {
   window.open("https://github.com/caido-community/quickssrf", "_blank");
 };
 
-let dataChangeSubscription: { stop: () => void } | null = null;
-let urlGeneratedSubscription: { stop: () => void } | null = null;
-let filterChangedSubscription: { stop: () => void } | null = null;
-let filterEnabledChangedSubscription: { stop: () => void } | null = null;
+let dataChangeSubscription: { stop: () => void } | undefined;
+let urlGeneratedSubscription: { stop: () => void } | undefined;
+let filterChangedSubscription: { stop: () => void } | undefined;
+let filterEnabledChangedSubscription: { stop: () => void } | undefined;
 
 onMounted(async () => {
   initializeEditors();
@@ -46,7 +52,8 @@ onMounted(async () => {
   dataChangeSubscription = interactionStore.subscribeToDataChanges();
   urlGeneratedSubscription = interactionStore.subscribeToUrlGenerated();
   filterChangedSubscription = interactionStore.subscribeToFilterChanged();
-  filterEnabledChangedSubscription = interactionStore.subscribeToFilterEnabledChanged();
+  filterEnabledChangedSubscription =
+    interactionStore.subscribeToFilterEnabledChanged();
 });
 
 onUnmounted(() => {

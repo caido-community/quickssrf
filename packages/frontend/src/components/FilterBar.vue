@@ -3,16 +3,22 @@ import AutoComplete, {
   type AutoCompleteCompleteEvent,
 } from "primevue/autocomplete";
 import Button from "primevue/button";
-
-import { computed, nextTick, ref, watch, onMounted, onBeforeUnmount } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 
 import { useInteractionStore } from "@/stores/interactionStore";
 
 // Syntax highlighting colors
 const COLORS = {
-  field: "#90c191",     // protocol, ip, path, payload
-  operator: "#fec418",  // eq, ne, cont, like, etc.
-  value: "#ce9178",     // quoted values
+  field: "#90c191", // protocol, ip, path, payload
+  operator: "#fec418", // eq, ne, cont, like, etc.
+  value: "#ce9178", // quoted values
   punctuation: "#ffffff", // . : AND OR
 };
 
@@ -80,10 +86,21 @@ function highlightSyntax(query: string): string {
     }
 
     // Parse token: field.operator:"value" or partial
-    const tokenMatch = remaining.match(/^([a-zA-Z]+)(\.?)([a-zA-Z]*)(:{1,2})?("?)([^"]*)(\"?)/);
+    const tokenMatch = remaining.match(
+      /^([a-zA-Z]+)(\.?)([a-zA-Z]*)(:{1,2})?("?)([^"]*)("?)/,
+    );
 
     if (tokenMatch) {
-      const [fullMatch, field, dot, operator, colon, openQuote, value, closeQuote] = tokenMatch;
+      const [
+        fullMatch,
+        field,
+        dot,
+        operator,
+        colon,
+        openQuote,
+        value,
+        closeQuote,
+      ] = tokenMatch;
 
       // Field (green)
       if (field) {
@@ -158,7 +175,16 @@ onBeforeUnmount(() => {
 const fields = ["protocol", "ip", "path", "payload", "source", "tag"];
 
 // Available operators
-const operators = ["eq", "ne", "cont", "ncont", "like", "nlike", "regex", "nregex"];
+const operators = [
+  "eq",
+  "ne",
+  "cont",
+  "ncont",
+  "like",
+  "nlike",
+  "regex",
+  "nregex",
+];
 
 // Logical operators
 const logicalOps = ["AND", "OR"];
@@ -268,7 +294,8 @@ function computeSuggestions(query: string): string[] {
       .toLowerCase();
 
     const fieldDotIndex = beforeColon.indexOf(".");
-    const field = fieldDotIndex > 0 ? beforeColon.substring(0, fieldDotIndex) : beforeColon;
+    const field =
+      fieldDotIndex > 0 ? beforeColon.substring(0, fieldDotIndex) : beforeColon;
 
     let values: string[] = [];
     if (field === "protocol") {
@@ -488,7 +515,10 @@ function onKeydown(event: KeyboardEvent) {
           .toLowerCase();
 
         const fieldDotIndex = beforeColon.indexOf(".");
-        const field = fieldDotIndex > 0 ? beforeColon.substring(0, fieldDotIndex) : beforeColon;
+        const field =
+          fieldDotIndex > 0
+            ? beforeColon.substring(0, fieldDotIndex)
+            : beforeColon;
 
         let values: string[] = [];
         if (field === "protocol") {
@@ -520,17 +550,17 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 // Watch for local filter changes to update suggestions and sync to backend
-watch(
-  localFilter,
-  (newQuery) => {
-    suggestions.value = computeSuggestions(newQuery);
-    syncFilterToBackend();
-  },
-);
+watch(localFilter, (newQuery) => {
+  suggestions.value = computeSuggestions(newQuery);
+  syncFilterToBackend();
+});
 </script>
 
 <template>
-  <div class="filter-bar" :class="{ 'filter-disabled': !interactionStore.filterEnabled }">
+  <div
+    class="filter-bar"
+    :class="{ 'filter-disabled': !interactionStore.filterEnabled }"
+  >
     <i class="fas fa-search text-surface-400 shrink-0" />
     <div class="autocomplete-wrapper">
       <AutoComplete
@@ -546,16 +576,17 @@ watch(
           root: { class: 'w-full' },
           pcInputText: {
             root: {
-              class: 'w-full !bg-surface-900 !border-surface-700 !rounded-lg !py-2.5 !px-3 placeholder:!text-surface-500 !text-transparent !caret-white !text-base !font-medium',
+              class:
+                'w-full !bg-surface-900 !border-surface-700 !rounded-lg !py-2.5 !px-3 placeholder:!text-surface-500 !text-transparent !caret-white !text-base !font-medium',
               spellcheck: 'false',
               autocomplete: 'off',
               autocorrect: 'off',
-              autocapitalize: 'off'
-            }
+              autocapitalize: 'off',
+            },
           },
           dropdown: {
-            class: '!bg-surface-800 !border-surface-700 !rounded-r-lg'
-          }
+            class: '!bg-surface-800 !border-surface-700 !rounded-r-lg',
+          },
         }"
         @complete="search"
         @item-select="onSelect"
@@ -573,8 +604,14 @@ watch(
     </div>
     <Button
       v-if="localFilter"
-      v-tooltip="interactionStore.filterEnabled ? 'Disable filter' : 'Enable filter'"
-      :icon="interactionStore.filterEnabled ? 'fas fa-toggle-on' : 'fas fa-toggle-off'"
+      v-tooltip="
+        interactionStore.filterEnabled ? 'Disable filter' : 'Enable filter'
+      "
+      :icon="
+        interactionStore.filterEnabled
+          ? 'fas fa-toggle-on'
+          : 'fas fa-toggle-off'
+      "
       :severity="interactionStore.filterEnabled ? 'primary' : 'secondary'"
       text
       size="small"

@@ -67,9 +67,9 @@ export type BackendEvents = DefineEvents<{
   onFilterEnabledChanged: (enabled: boolean) => void;
 }>;
 
-let sdkInstance: SDK<API, BackendEvents> | null = null;
+let sdkInstance: SDK<API, BackendEvents> | undefined;
 
-export function getSDK(): SDK<API, BackendEvents> | null {
+export function getSDK(): SDK<API, BackendEvents> | undefined {
   return sdkInstance;
 }
 

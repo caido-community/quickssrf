@@ -8,10 +8,10 @@ import type {
 
 import { InteractshStore } from "../stores/interactsh";
 
-export const startInteractsh = async (
+export const startInteractsh = (
   sdk: SDK,
   options: InteractshStartOptions,
-): Promise<boolean> => {
+): boolean => {
   const store = InteractshStore.get(sdk);
   return store.start(options);
 };
@@ -43,7 +43,10 @@ export const getNewInteractions = (
   return store.getNewInteractions(lastIndex);
 };
 
-export const pollInteractsh = async (sdk: SDK, notifyOthers = false): Promise<void> => {
+export const pollInteractsh = async (
+  sdk: SDK,
+  notifyOthers = false,
+): Promise<void> => {
   const store = InteractshStore.get(sdk);
   return store.poll(notifyOthers);
 };

@@ -89,17 +89,22 @@ export function useLogic() {
     }
 
     // Add context menu handlers
-    const handleContextMenu = (editorView: EditorView) => (event: MouseEvent) => {
-      const selectedText = getEditorSelectedText(editorView);
-      if (selectedText && contextMenuRef.value) {
-        event.preventDefault();
-        pendingCopyText.value = selectedText;
-        contextMenuRef.value.show(event);
-      }
-    };
+    const handleContextMenu =
+      (editorView: EditorView) => (event: MouseEvent) => {
+        const selectedText = getEditorSelectedText(editorView);
+        if (selectedText && contextMenuRef.value) {
+          event.preventDefault();
+          pendingCopyText.value = selectedText;
+          contextMenuRef.value.show(event);
+        }
+      };
 
-    const requestContextHandler = handleContextMenu(requestEditor.getEditorView());
-    const responseContextHandler = handleContextMenu(responseEditor.getEditorView());
+    const requestContextHandler = handleContextMenu(
+      requestEditor.getEditorView(),
+    );
+    const responseContextHandler = handleContextMenu(
+      responseEditor.getEditorView(),
+    );
 
     requestEditorEl?.addEventListener("contextmenu", requestContextHandler);
     responseEditorEl?.addEventListener("contextmenu", responseContextHandler);
@@ -130,8 +135,14 @@ export function useLogic() {
       editorStore.eventBus.removeEventListener("refreshEditors", eventHandler);
 
       // Remove context menu handlers
-      requestEditorEl?.removeEventListener("contextmenu", requestContextHandler);
-      responseEditorEl?.removeEventListener("contextmenu", responseContextHandler);
+      requestEditorEl?.removeEventListener(
+        "contextmenu",
+        requestContextHandler,
+      );
+      responseEditorEl?.removeEventListener(
+        "contextmenu",
+        responseContextHandler,
+      );
 
       if (responseEditorEl) {
         responseEditorEl.remove();

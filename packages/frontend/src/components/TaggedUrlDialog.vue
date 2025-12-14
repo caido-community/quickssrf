@@ -2,7 +2,6 @@
 import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import InputText from "primevue/inputtext";
-
 import { ref, watch } from "vue";
 
 import { useInteractionStore } from "@/stores/interactionStore";
@@ -13,14 +12,14 @@ const uiStore = useUIStore();
 
 const visible = defineModel<boolean>("visible", { default: false });
 const tagValue = ref("");
-const generatedUrl = ref<string | null>(null);
+const generatedUrl = ref<string | undefined>(undefined);
 const isGenerating = ref(false);
 
 // Focus input when dialog opens
 watch(visible, (newVal) => {
   if (newVal) {
     tagValue.value = "";
-    generatedUrl.value = null;
+    generatedUrl.value = undefined;
   }
 });
 
@@ -30,7 +29,7 @@ async function handleGenerate() {
   }
 
   isGenerating.value = true;
-  generatedUrl.value = null;
+  generatedUrl.value = undefined;
 
   try {
     const url = await interactionStore.generateUrl(tagValue.value.trim());
@@ -53,7 +52,7 @@ function copyUrl() {
 function handleClose() {
   visible.value = false;
   tagValue.value = "";
-  generatedUrl.value = null;
+  generatedUrl.value = undefined;
 }
 </script>
 
@@ -96,11 +95,7 @@ function handleClose() {
         <span class="text-surface-400 text-sm">Generated URL:</span>
         <div class="flex items-center gap-2">
           <InputText :model-value="generatedUrl" readonly class="flex-1" />
-          <Button
-            icon="fas fa-copy"
-            severity="secondary"
-            @click="copyUrl"
-          />
+          <Button icon="fas fa-copy" severity="secondary" @click="copyUrl" />
         </div>
         <p class="text-sm text-surface-500">
           <i class="fas fa-info-circle mr-1"></i>

@@ -32,9 +32,9 @@ export const useSettingsStore = defineStore("settings", () => {
 
   // Get list of actual server URLs (excluding random and custom)
   function getServerUrls(): string[] {
-    return SERVER_PRESETS
-      .filter((p) => p.value !== "random" && p.value !== "custom")
-      .map((p) => p.value);
+    return SERVER_PRESETS.filter(
+      (p) => p.value !== "random" && p.value !== "custom",
+    ).map((p) => p.value);
   }
 
   // Get the actual server URL to use (handles random mode)
@@ -63,7 +63,9 @@ export const useSettingsStore = defineStore("settings", () => {
       if (settings.serverURL === "random") {
         serverMode.value = "random";
       } else {
-        const preset = SERVER_PRESETS.find((p) => p.value === settings.serverURL);
+        const preset = SERVER_PRESETS.find(
+          (p) => p.value === settings.serverURL,
+        );
         if (preset && preset.value !== "custom") {
           serverMode.value = preset.value;
         } else {
@@ -82,11 +84,12 @@ export const useSettingsStore = defineStore("settings", () => {
       const prevSettings = await sdk.backend.getSettings();
 
       // Determine the URL to save based on mode
-      const urlToSave = serverMode.value === "random"
-        ? "random"
-        : serverMode.value === "custom"
-          ? serverURL.value
-          : serverMode.value;
+      const urlToSave =
+        serverMode.value === "random"
+          ? "random"
+          : serverMode.value === "custom"
+            ? serverURL.value
+            : serverMode.value;
 
       const serverURLChanged = prevSettings.serverURL !== urlToSave;
       const correlationIdLengthChanged =
