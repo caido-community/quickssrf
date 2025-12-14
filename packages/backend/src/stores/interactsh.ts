@@ -97,7 +97,7 @@ export class InteractshStore {
     }
   }
 
-  private parseInteraction(json: Record<string, unknown>, tag?: string): Interaction {
+  private parseInteraction(json: Record<string, unknown>, tag?: string, serverUrl?: string): Interaction {
     const toString = (value: unknown): string => {
       if (typeof value === "string") {
         return value;
@@ -119,6 +119,7 @@ export class InteractshStore {
       remoteAddress: toString(json["remote-address"] ?? ""),
       timestamp: toString(json.timestamp ?? new Date().toISOString()),
       tag,
+      serverUrl,
     };
   }
 
@@ -163,8 +164,8 @@ export class InteractshStore {
 
         // Only add interaction if URL is found AND is active
         if (matchingUrl && matchingUrl.isActive) {
-          // Pass the tag from the matching URL to the interaction
-          const parsed = this.parseInteraction(interaction, matchingUrl.tag);
+          // Pass the tag and serverUrl from the matching URL to the interaction
+          const parsed = this.parseInteraction(interaction, matchingUrl.tag, matchingUrl.serverUrl);
           this.interactions.push(parsed);
           // Don't emit event for new interactions - polling handles this
           this.savePersistedData(false);

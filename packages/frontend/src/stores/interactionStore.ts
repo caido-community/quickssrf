@@ -89,7 +89,7 @@ export const useInteractionStore = defineStore("interaction", () => {
 
   // Get field value from item
   function getFieldValue(
-    item: Interaction & { req: number; dateTime: string },
+    item: Interaction & { req: number; dateTime: string; payloadUrl?: string },
     field: string,
   ): string {
     switch (field) {
@@ -100,10 +100,10 @@ export const useInteractionStore = defineStore("interaction", () => {
       case "source":
         return item.remoteAddress.toLowerCase();
       case "path":
-        return item.httpPath.toLowerCase();
+        return (item.httpPath || "").toLowerCase();
       case "payload":
       case "id":
-        return item.fullId.toLowerCase();
+        return (item.payloadUrl || item.fullId).toLowerCase();
       case "tag":
         return (item.tag || "").toLowerCase();
       default:
@@ -185,12 +185,23 @@ export const useInteractionStore = defineStore("interaction", () => {
   const tableData = computed(() => {
     return data.value.map((item: Interaction, index: number) => {
       const date = new Date(item.timestamp);
+      // Build full payload URL: fullId.serverDomain
+      let payloadUrl = item.fullId;
+      if (item.serverUrl) {
+        try {
+          const serverDomain = new URL(item.serverUrl).hostname;
+          payloadUrl = `${item.fullId}.${serverDomain}`;
+        } catch {
+          // Keep original fullId if URL parsing fails
+        }
+      }
       return {
         ...item,
         req: index + 1,
         dateTime: date.toISOString(),
         localDateTime: date.toLocaleString(),
         protocol: item.protocol.toUpperCase(),
+        payloadUrl,
       };
     });
   });

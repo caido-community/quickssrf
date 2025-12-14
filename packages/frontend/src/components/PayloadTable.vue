@@ -242,7 +242,7 @@ onBeforeUnmount(() => {
         sortable
         style="width: 130px"
       />
-      <Column field="fullId" header="Payload" sortable />
+      <Column field="payloadUrl" header="Payload" sortable />
       <Column field="tag" header="Tag" sortable style="width: 150px">
         <template #body="{ data }">
           <div

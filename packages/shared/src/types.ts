@@ -17,6 +17,7 @@ export interface Interaction {
   timestamp: string;
   httpPath?: string;
   tag?: string;
+  serverUrl?: string;
 }
 
 export interface InteractshStartOptions {

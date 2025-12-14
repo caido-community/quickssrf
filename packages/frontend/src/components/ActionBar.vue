@@ -58,7 +58,7 @@ function exportToCSV() {
     item.protocol,
     item.httpPath || "",
     item.remoteAddress,
-    item.fullId,
+    item.payloadUrl || item.fullId,
     item.tag || "",
     item.localDateTime,
   ]);
@@ -82,7 +82,7 @@ function exportToJSON() {
     protocol: item.protocol,
     httpPath: item.httpPath || "",
     remoteAddress: item.remoteAddress,
-    fullId: item.fullId,
+    payload: item.payloadUrl || item.fullId,
     tag: item.tag || null,
     timestamp: item.timestamp,
     rawRequest: item.rawRequest,
