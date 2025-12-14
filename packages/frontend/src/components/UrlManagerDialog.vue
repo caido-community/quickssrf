@@ -5,12 +5,11 @@ import DataTable from "primevue/datatable";
 import Dialog from "primevue/dialog";
 import InputSwitch from "primevue/inputswitch";
 import InputText from "primevue/inputtext";
-
+import type { ActiveUrl } from "shared";
 import { onMounted, ref, watch } from "vue";
 
 import { useSDK } from "@/plugins/sdk";
 import { useUIStore } from "@/stores/uiStore";
-import type { ActiveUrl } from "shared";
 
 const sdk = useSDK();
 const uiStore = useUIStore();
@@ -79,7 +78,8 @@ onMounted(() => {
   >
     <div class="flex flex-col gap-4">
       <p class="text-surface-400 text-sm">
-        Manage your generated URLs. Disable a URL to stop receiving interactions from it.
+        Manage your generated URLs. Disable a URL to stop receiving interactions
+        from it.
       </p>
 
       <DataTable
@@ -120,7 +120,7 @@ onMounted(() => {
         <Column header="Server" style="width: 120px">
           <template #body="{ data }">
             <span class="text-sm text-surface-400">
-              {{ data.serverUrl?.replace('https://', '') || 'N/A' }}
+              {{ data.serverUrl?.replace("https://", "") || "N/A" }}
             </span>
           </template>
         </Column>
@@ -146,9 +146,7 @@ onMounted(() => {
         <template #empty>
           <div class="flex flex-col justify-center items-center py-8">
             <i class="fas fa-link text-surface-300 text-3xl mb-3"></i>
-            <p class="text-surface-400 text-center">
-              No URLs generated yet
-            </p>
+            <p class="text-surface-400 text-center">No URLs generated yet</p>
           </div>
         </template>
       </DataTable>

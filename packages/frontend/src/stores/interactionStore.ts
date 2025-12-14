@@ -37,7 +37,7 @@ export const useInteractionStore = defineStore("interaction", () => {
   type FilterGroup = { conditions: FilterCondition[]; operator: "AND" | "OR" };
 
   // Parse HTTPQL-style filter: field.operator:"value" or field.operator:value
-  function parseCondition(token: string): FilterCondition | null {
+  function parseCondition(token: string): FilterCondition | undefined {
     // Match: field.operator:"value" or field.operator:value
     const match = token.match(/^(\w+)\.(\w+):["']?(.+?)["']?$/);
     if (match && match[1] && match[2] && match[3]) {
@@ -59,7 +59,7 @@ export const useInteractionStore = defineStore("interaction", () => {
       }
     }
 
-    return null;
+    return undefined;
   }
 
   // Parse HTTPQL-style filter query with AND/OR support
@@ -131,17 +131,19 @@ export const useInteractionStore = defineStore("interaction", () => {
         return fieldValue.includes(lowerFilterValue);
       case "ncont":
         return !fieldValue.includes(lowerFilterValue);
-      case "like":
+      case "like": {
         // Convert SQL LIKE pattern to regex: % -> .*, _ -> .
         const likePattern = lowerFilterValue
           .replace(/%/g, ".*")
           .replace(/_/g, ".");
         return new RegExp(`^${likePattern}$`, "i").test(fieldValue);
-      case "nlike":
+      }
+      case "nlike": {
         const nlikePattern = lowerFilterValue
           .replace(/%/g, ".*")
           .replace(/_/g, ".");
         return !new RegExp(`^${nlikePattern}$`, "i").test(fieldValue);
+      }
       case "regex":
         try {
           return new RegExp(filterValue, "i").test(fieldValue);
@@ -323,14 +325,19 @@ export const useInteractionStore = defineStore("interaction", () => {
 
     // If random mode is enabled, pre-initialize all server clients in background
     if (settings.serverMode === "random") {
-      const allServerUrls = SERVER_PRESETS
-        .filter((p) => p.value !== "random" && p.value !== "custom")
-        .map((p) => p.value);
-      sdk.backend.initializeClients(allServerUrls).then((count) => {
-        console.log(`Pre-initialized ${count} server clients for random mode`);
-      }).catch((err) => {
-        console.error("Failed to pre-initialize clients:", err);
-      });
+      const allServerUrls = SERVER_PRESETS.filter(
+        (p) => p.value !== "random" && p.value !== "custom",
+      ).map((p) => p.value);
+      sdk.backend
+        .initializeClients(allServerUrls)
+        .then((count) => {
+          console.log(
+            `Pre-initialized ${count} server clients for random mode`,
+          );
+        })
+        .catch((err) => {
+          console.error("Failed to pre-initialize clients:", err);
+        });
     }
 
     return true;
@@ -353,7 +360,7 @@ export const useInteractionStore = defineStore("interaction", () => {
   async function generateUrl(tag?: string) {
     const initialized = await initializeService();
     if (!initialized) {
-      return null;
+      return undefined;
     }
 
     const settings = useSettingsStore();
@@ -369,10 +376,10 @@ export const useInteractionStore = defineStore("interaction", () => {
 
     if (error) {
       console.error("Failed to generate URL:", error);
-      return null;
+      return undefined;
     }
 
-    return result?.url || null;
+    return result?.url || undefined;
   }
 
   async function manualPoll() {
@@ -444,7 +451,9 @@ export const useInteractionStore = defineStore("interaction", () => {
 
     // Then update local state
     const selectedIdsSet = new Set(selectedIds);
-    data.value = data.value.filter((item) => !selectedIdsSet.has(item.uniqueId));
+    data.value = data.value.filter(
+      (item) => !selectedIdsSet.has(item.uniqueId),
+    );
     // Also remove colors
     for (const id of selectedIds) {
       delete rowColors.value[id];
@@ -458,8 +467,8 @@ export const useInteractionStore = defineStore("interaction", () => {
   }
 
   // Set row color
-  function setRowColor(fullId: string, color: string | null) {
-    if (color === null) {
+  function setRowColor(fullId: string, color: string | undefined) {
+    if (color === undefined) {
       delete rowColors.value[fullId];
     } else {
       rowColors.value[fullId] = color;
@@ -563,40 +572,53 @@ export const useInteractionStore = defineStore("interaction", () => {
   // Subscribe to URL generation events
   function subscribeToUrlGenerated() {
     const uiStore = useUIStore();
-    const subscription = sdk.backend.onEvent("onUrlGenerated", (url: string) => {
-      console.log("URL generated event received:", url);
-      uiStore.setGeneratedUrl(url);
-    });
+    const subscription = sdk.backend.onEvent(
+      "onUrlGenerated",
+      (url: string) => {
+        console.log("URL generated event received:", url);
+        uiStore.setGeneratedUrl(url);
+      },
+    );
     return subscription;
   }
 
   // Subscribe to filter change events
   function subscribeToFilterChanged() {
-    const subscription = sdk.backend.onEvent("onFilterChanged", (filter: string) => {
-      // Skip if we made the change ourselves
-      if (skipNextFilterChangeEvent) {
-        skipNextFilterChangeEvent = false;
-        console.log("Filter changed event received, skipping (self-triggered)");
-        return;
-      }
-      console.log("Filter changed event received:", filter);
-      filterQuery.value = filter;
-    });
+    const subscription = sdk.backend.onEvent(
+      "onFilterChanged",
+      (filter: string) => {
+        // Skip if we made the change ourselves
+        if (skipNextFilterChangeEvent) {
+          skipNextFilterChangeEvent = false;
+          console.log(
+            "Filter changed event received, skipping (self-triggered)",
+          );
+          return;
+        }
+        console.log("Filter changed event received:", filter);
+        filterQuery.value = filter;
+      },
+    );
     return subscription;
   }
 
   // Subscribe to filter enabled change events
   function subscribeToFilterEnabledChanged() {
-    const subscription = sdk.backend.onEvent("onFilterEnabledChanged", (enabled: boolean) => {
-      // Skip if we made the change ourselves
-      if (skipNextFilterEnabledChangeEvent) {
-        skipNextFilterEnabledChangeEvent = false;
-        console.log("Filter enabled changed event received, skipping (self-triggered)");
-        return;
-      }
-      console.log("Filter enabled changed event received:", enabled);
-      filterEnabled.value = enabled;
-    });
+    const subscription = sdk.backend.onEvent(
+      "onFilterEnabledChanged",
+      (enabled: boolean) => {
+        // Skip if we made the change ourselves
+        if (skipNextFilterEnabledChangeEvent) {
+          skipNextFilterEnabledChangeEvent = false;
+          console.log(
+            "Filter enabled changed event received, skipping (self-triggered)",
+          );
+          return;
+        }
+        console.log("Filter enabled changed event received:", enabled);
+        filterEnabled.value = enabled;
+      },
+    );
     return subscription;
   }
 
@@ -618,7 +640,9 @@ export const useInteractionStore = defineStore("interaction", () => {
       console.log(`Loaded filter from backend: "${filter}"`);
     }
 
-    const { data: enabled, error: enabledError } = await tryCatch(sdk.backend.getFilterEnabled());
+    const { data: enabled, error: enabledError } = await tryCatch(
+      sdk.backend.getFilterEnabled(),
+    );
     if (!enabledError && enabled !== undefined) {
       filterEnabled.value = enabled;
       console.log(`Loaded filter enabled from backend: ${enabled}`);

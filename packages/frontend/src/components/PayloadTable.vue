@@ -4,8 +4,7 @@ import Column from "primevue/column";
 import ContextMenu from "primevue/contextmenu";
 import DataTable from "primevue/datatable";
 import InputText from "primevue/inputtext";
-
-import { ref, onMounted, onBeforeUnmount, computed, nextTick } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 
 import { useLogic } from "@/composables/useLogic";
 import { useEditorStore } from "@/stores/editorStore";
@@ -23,10 +22,10 @@ function copyToClipboard(text: string) {
 }
 
 const contextMenu = ref();
-const contextMenuRow = ref<Interaction | null>(null);
-const contextMenuField = ref<string | null>(null);
+const contextMenuRow = ref<Interaction | undefined>(undefined);
+const contextMenuField = ref<string | undefined>(undefined);
 
-const rowColorOptions = [
+const rowColorOptions: { label: string; color: string | undefined }[] = [
   { label: "Red", color: "#f43f5e" },
   { label: "Orange", color: "#f97316" },
   { label: "Yellow", color: "#facc15" },
@@ -35,7 +34,7 @@ const rowColorOptions = [
   { label: "Blue", color: "#3b82f6" },
   { label: "Violet", color: "#8b5cf6" },
   { label: "Pink", color: "#ec4899" },
-  { label: "None", color: null },
+  { label: "None", color: undefined },
 ];
 
 function buildColorMenuItems() {
@@ -45,7 +44,10 @@ function buildColorMenuItems() {
     iconColor: option.color || undefined,
     command: () => {
       if (contextMenuRow.value) {
-        interactionStore.setRowColor(contextMenuRow.value.uniqueId, option.color);
+        interactionStore.setRowColor(
+          contextMenuRow.value.uniqueId,
+          option.color,
+        );
       }
     },
   }));
@@ -60,20 +62,25 @@ const fieldToFilterMap: Record<string, string> = {
   tag: "tag",
 };
 
-function getFilterValueForField(row: Interaction & { payloadUrl?: string }, field: string): string | null {
+function getFilterValueForField(
+  row: Interaction & { payloadUrl?: string },
+  field: string,
+): string | undefined {
   switch (field) {
     case "protocol":
-      return row.protocol?.toLowerCase() || null;
+      return row.protocol?.toLowerCase() || undefined;
     case "httpPath":
-      return row.httpPath || null;
+      return row.httpPath || undefined;
     case "remoteAddress":
-      return row.remoteAddress || null;
+      return row.remoteAddress || undefined;
     case "payloadUrl":
-      return (row as { payloadUrl?: string }).payloadUrl || row.fullId || null;
+      return (
+        (row as { payloadUrl?: string }).payloadUrl || row.fullId || undefined
+      );
     case "tag":
-      return row.tag || null;
+      return row.tag || undefined;
     default:
-      return null;
+      return undefined;
   }
 }
 
@@ -81,7 +88,10 @@ function addFilterFromContext() {
   if (!contextMenuRow.value || !contextMenuField.value) return;
 
   const filterField = fieldToFilterMap[contextMenuField.value];
-  const value = getFilterValueForField(contextMenuRow.value as Interaction & { payloadUrl?: string }, contextMenuField.value);
+  const value = getFilterValueForField(
+    contextMenuRow.value as Interaction & { payloadUrl?: string },
+    contextMenuField.value,
+  );
 
   if (!filterField || !value) return;
 
@@ -119,7 +129,7 @@ const contextMenuItems = ref([
           editorStore.clearEditors();
           uiStore.selectedRow = undefined;
         }
-        contextMenuRow.value = null;
+        contextMenuRow.value = undefined;
       }
     },
   },
@@ -139,13 +149,13 @@ function onRowContextMenu(event: { originalEvent: Event; data: Interaction }) {
       const cellIndex = cells.indexOf(cell);
       // Map cell index to field (accounting for checkbox column at index 0)
       const fieldMap: Record<number, string> = {
-        2: "protocol",    // Type column
-        3: "httpPath",    // Path column
+        2: "protocol", // Type column
+        3: "httpPath", // Path column
         4: "remoteAddress", // Source column
-        5: "payloadUrl",  // Payload column
-        6: "tag",         // Tag column
+        5: "payloadUrl", // Payload column
+        6: "tag", // Tag column
       };
-      contextMenuField.value = fieldMap[cellIndex] || null;
+      contextMenuField.value = fieldMap[cellIndex] || undefined;
     }
   }
 
@@ -161,7 +171,7 @@ function deleteRow(uniqueId: string) {
 }
 
 // Tag editing
-const editingTagId = ref<string | null>(null);
+const editingTagId = ref<string | undefined>(undefined);
 const editingTagValue = ref("");
 
 function startEditTag(uniqueId: string, currentTag: string | undefined) {
@@ -172,12 +182,12 @@ function startEditTag(uniqueId: string, currentTag: string | undefined) {
 function saveTag(uniqueId: string) {
   const newTag = editingTagValue.value.trim() || undefined;
   interactionStore.setInteractionTag(uniqueId, newTag);
-  editingTagId.value = null;
+  editingTagId.value = undefined;
   editingTagValue.value = "";
 }
 
 function cancelEditTag() {
-  editingTagId.value = null;
+  editingTagId.value = undefined;
   editingTagValue.value = "";
 }
 
@@ -196,10 +206,10 @@ function getRowStyle(data: Interaction) {
 
   if (isSelected) {
     if (!color) {
-      style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+      style.backgroundColor = "rgba(59, 130, 246, 0.3)";
     }
-    style.outline = '2px solid #3b82f6';
-    style.outlineOffset = '-2px';
+    style.outline = "2px solid #3b82f6";
+    style.outlineOffset = "-2px";
   }
 
   return style;
@@ -208,7 +218,11 @@ function getRowStyle(data: Interaction) {
 function onRowClick(event: { originalEvent: Event; data: Interaction }) {
   // Don't select row when clicking on checkbox column
   const target = event.originalEvent.target as HTMLElement;
-  if (target.closest('.p-selection-column') || target.closest('[data-p-checkbox]') || target.tagName === 'INPUT') {
+  if (
+    target.closest(".p-selection-column") ||
+    target.closest("[data-p-checkbox]") ||
+    target.tagName === "INPUT"
+  ) {
     return;
   }
   uiStore.selectedRow = event.data;
@@ -223,14 +237,18 @@ const dataTableRef = ref();
 
 function scrollToSelectedRow(index: number) {
   nextTick(() => {
-    const tableWrapper = dataTableRef.value?.$el?.querySelector('[data-pc-section="tablecontainer"]');
+    const tableWrapper = dataTableRef.value?.$el?.querySelector(
+      '[data-pc-section="tablecontainer"]',
+    );
     if (!tableWrapper) return;
 
-    const rows = tableWrapper.querySelectorAll('tbody tr[data-pc-section="bodyrow"]');
+    const rows = tableWrapper.querySelectorAll(
+      'tbody tr[data-pc-section="bodyrow"]',
+    );
     const targetRow = rows[index] as HTMLElement;
 
     if (targetRow) {
-      targetRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      targetRow.scrollIntoView({ block: "nearest", behavior: "smooth" });
       // Move focus to the new row to sync with our selection
       targetRow.focus({ preventScroll: true });
     }
@@ -239,21 +257,23 @@ function scrollToSelectedRow(index: number) {
 
 function handleKeyDown(event: KeyboardEvent) {
   if (!uiStore.selectedRow) return;
-  if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+  if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
 
   // Don't navigate if focus is in an input
   const target = event.target as HTMLElement;
-  if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+  if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") return;
 
   event.preventDefault();
 
   const data = sortedData.value;
-  const currentIndex = data.findIndex(item => item.uniqueId === uiStore.selectedRow?.uniqueId);
+  const currentIndex = data.findIndex(
+    (item) => item.uniqueId === uiStore.selectedRow?.uniqueId,
+  );
 
   if (currentIndex === -1) return;
 
   let newIndex: number;
-  if (event.key === 'ArrowUp') {
+  if (event.key === "ArrowUp") {
     newIndex = Math.max(0, currentIndex - 1);
   } else {
     newIndex = Math.min(data.length - 1, currentIndex + 1);
@@ -266,11 +286,11 @@ function handleKeyDown(event: KeyboardEvent) {
 }
 
 onMounted(() => {
-  document.addEventListener('keydown', handleKeyDown);
+  document.addEventListener("keydown", handleKeyDown);
 });
 
 onBeforeUnmount(() => {
-  document.removeEventListener('keydown', handleKeyDown);
+  document.removeEventListener("keydown", handleKeyDown);
 });
 </script>
 
@@ -293,13 +313,21 @@ onBeforeUnmount(() => {
       @row-contextmenu="onRowContextMenu"
       @row-click="onRowClick"
     >
-      <Column selection-mode="multiple" :header-checkbox-toggle-all-on-page-only="true" style="width: 40px">
+      <Column
+        selection-mode="multiple"
+        :header-checkbox-toggle-all-on-page-only="true"
+        style="width: 40px"
+      >
         <template #header>&nbsp;</template>
       </Column>
       <Column field="req" header="Req #" sortable style="width: 80px" />
       <Column field="protocol" header="Type" sortable style="width: 100px">
         <template #body="{ data }">
-          <span :class="data.protocol === 'DNS' ? 'text-orange-400' : 'text-green-500'">
+          <span
+            :class="
+              data.protocol === 'DNS' ? 'text-orange-400' : 'text-green-500'
+            "
+          >
             {{ data.protocol }}
           </span>
         </template>
@@ -340,7 +368,9 @@ onBeforeUnmount(() => {
             @click.stop="startEditTag(data.uniqueId, data.tag)"
           >
             <span v-if="data.tag" class="text-primary-500">{{ data.tag }}</span>
-            <span v-else class="text-surface-400 italic text-sm">Click to add</span>
+            <span v-else class="text-surface-400 italic text-sm"
+              >Click to add</span
+            >
           </div>
           <div v-else class="flex items-center gap-1" @click.stop>
             <InputText
@@ -379,7 +409,9 @@ onBeforeUnmount(() => {
           <i class="fas fa-server text-surface-300 text-4xl mb-3"></i>
           <p
             class="text-surface-400 text-center mb-4"
-            :class="{ shimmer: uiStore.generatedUrl || uiStore.isGeneratingUrl }"
+            :class="{
+              shimmer: uiStore.generatedUrl || uiStore.isGeneratingUrl,
+            }"
           >
             <span v-if="!uiStore.generatedUrl && !uiStore.isGeneratingUrl">
               Generate a URL to start capturing interactions
@@ -458,5 +490,4 @@ onBeforeUnmount(() => {
     background-position: 12.5rem top;
   }
 }
-
 </style>

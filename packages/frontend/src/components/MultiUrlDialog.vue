@@ -3,7 +3,6 @@ import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import InputNumber from "primevue/inputnumber";
 import InputText from "primevue/inputtext";
-
 import { ref } from "vue";
 
 import { useInteractionStore } from "@/stores/interactionStore";

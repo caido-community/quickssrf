@@ -2,7 +2,6 @@
 import Button from "primevue/button";
 import InputText from "primevue/inputtext";
 import SplitButton from "primevue/splitbutton";
-
 import { computed, ref } from "vue";
 
 import MultiUrlDialog from "./MultiUrlDialog.vue";
@@ -52,7 +51,15 @@ function exportToCSV() {
   const data = interactionStore.filteredTableData;
   if (data.length === 0) return;
 
-  const headers = ["Req #", "Type", "Path", "Source", "Payload", "Tag", "Date-Time"];
+  const headers = [
+    "Req #",
+    "Type",
+    "Path",
+    "Source",
+    "Payload",
+    "Tag",
+    "Date-Time",
+  ];
   const rows = data.map((item) => [
     item.req,
     item.protocol,
@@ -66,7 +73,7 @@ function exportToCSV() {
   const csvContent = [
     headers.join(","),
     ...rows.map((row) =>
-      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
     ),
   ].join("\n");
 

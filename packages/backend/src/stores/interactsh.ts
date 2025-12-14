@@ -8,7 +8,12 @@ import type {
   InteractshStartOptions,
 } from "shared";
 
-import { emitDataChanged, emitFilterChanged, emitFilterEnabledChanged, emitUrlGenerated } from "../index";
+import {
+  emitDataChanged,
+  emitFilterChanged,
+  emitFilterEnabledChanged,
+  emitUrlGenerated,
+} from "../index";
 import {
   createInteractshClient,
   type InteractshClient,
@@ -102,12 +107,30 @@ export class InteractshStore {
     }
   }
 
-  private parseInteraction(json: Record<string, unknown>, tag?: string, serverUrl?: string): Interaction {
+  private parseInteraction(
+    json: Record<string, unknown>,
+    tag?: string,
+    serverUrl?: string,
+  ): Interaction {
     const toString = (value: unknown): string => {
       if (typeof value === "string") {
         return value;
       }
-      return String(value ?? "");
+      if (value === undefined || value === null) {
+        return "";
+      }
+      if (typeof value === "number" || typeof value === "boolean") {
+        return String(value);
+      }
+      // For objects/arrays, use JSON.stringify to get meaningful output
+      if (typeof value === "object") {
+        try {
+          return JSON.stringify(value);
+        } catch {
+          return "";
+        }
+      }
+      return "";
     };
 
     // Generate a truly unique ID for each interaction
@@ -128,7 +151,7 @@ export class InteractshStore {
     };
   }
 
-  async start(options: InteractshStartOptions): Promise<boolean> {
+  start(options: InteractshStartOptions): boolean {
     if (this.isStarted) {
       this.sdk.console.log("Interactsh store already started");
       return true;
@@ -141,7 +164,9 @@ export class InteractshStore {
     return true;
   }
 
-  private async getOrCreateClient(serverUrl: string): Promise<InteractshClient> {
+  private async getOrCreateClient(
+    serverUrl: string,
+  ): Promise<InteractshClient> {
     const existing = this.clients.get(serverUrl);
     if (existing) {
       return existing.client;
@@ -162,7 +187,8 @@ export class InteractshStore {
       },
       (interaction: Record<string, unknown>) => {
         // Check if this interaction's URL is tracked and active
-        const fullId = String(interaction["full-id"] ?? "");
+        const rawFullId = interaction["full-id"];
+        const fullId = typeof rawFullId === "string" ? rawFullId : "";
         const matchingUrl = this.activeUrls.find(
           (u) => fullId.startsWith(u.uniqueId) || u.uniqueId === fullId,
         );
@@ -170,7 +196,11 @@ export class InteractshStore {
         // Only add interaction if URL is found AND is active
         if (matchingUrl && matchingUrl.isActive) {
           // Pass the tag and serverUrl from the matching URL to the interaction
-          const parsed = this.parseInteraction(interaction, matchingUrl.tag, matchingUrl.serverUrl);
+          const parsed = this.parseInteraction(
+            interaction,
+            matchingUrl.tag,
+            matchingUrl.serverUrl,
+          );
           this.interactions.push(parsed);
           // Don't emit event for new interactions - polling handles this
           this.savePersistedData(false);
@@ -178,9 +208,7 @@ export class InteractshStore {
             `New interaction received: ${parsed.protocol}${parsed.tag ? ` [${parsed.tag}]` : ""}`,
           );
         } else if (matchingUrl && !matchingUrl.isActive) {
-          this.sdk.console.log(
-            `Interaction ignored (URL disabled): ${fullId}`,
-          );
+          this.sdk.console.log(`Interaction ignored (URL disabled): ${fullId}`);
         } else {
           this.sdk.console.log(
             `Interaction ignored (URL not tracked): ${fullId}`,
@@ -207,7 +235,9 @@ export class InteractshStore {
           await client.stop();
           this.sdk.console.log(`Stopped client for server: ${serverUrl}`);
         } catch (error) {
-          this.sdk.console.error(`Failed to stop client for ${serverUrl}: ${error}`);
+          this.sdk.console.error(
+            `Failed to stop client for ${serverUrl}: ${error}`,
+          );
         }
       }
       this.clients.clear();
@@ -221,7 +251,10 @@ export class InteractshStore {
     }
   }
 
-  async generateUrl(serverUrl: string, tag?: string): Promise<GenerateUrlResult> {
+  async generateUrl(
+    serverUrl: string,
+    tag?: string,
+  ): Promise<GenerateUrlResult> {
     if (!this.isStarted) {
       throw new Error("Interactsh store not started");
     }
@@ -293,7 +326,9 @@ export class InteractshStore {
   deleteInteractions(uniqueIds: string[]): number {
     const idsSet = new Set(uniqueIds);
     const initialLength = this.interactions.length;
-    this.interactions = this.interactions.filter((i) => !idsSet.has(i.uniqueId));
+    this.interactions = this.interactions.filter(
+      (i) => !idsSet.has(i.uniqueId),
+    );
     const deletedCount = initialLength - this.interactions.length;
     if (deletedCount > 0) {
       this.savePersistedData();
@@ -364,12 +399,16 @@ export class InteractshStore {
         await this.getOrCreateClient(serverUrl);
         initialized++;
       } catch (error) {
-        this.sdk.console.error(`Failed to initialize client for ${serverUrl}: ${error}`);
+        this.sdk.console.error(
+          `Failed to initialize client for ${serverUrl}: ${error}`,
+        );
       }
     });
 
     await Promise.all(promises);
-    this.sdk.console.log(`Initialized ${initialized}/${serverUrls.length} clients`);
+    this.sdk.console.log(
+      `Initialized ${initialized}/${serverUrls.length} clients`,
+    );
     return initialized;
   }
 
