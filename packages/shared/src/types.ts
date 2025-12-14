@@ -16,6 +16,7 @@ export interface Interaction {
   remoteAddress: string;
   timestamp: string;
   httpPath?: string;
+  tag?: string;
 }
 
 export interface InteractshStartOptions {
@@ -37,4 +38,5 @@ export interface ActiveUrl {
   createdAt: string;
   isActive: boolean;
   serverUrl: string;
+  tag?: string;
 }

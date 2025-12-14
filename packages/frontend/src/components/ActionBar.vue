@@ -7,6 +7,7 @@ import { computed, ref } from "vue";
 
 import MultiUrlDialog from "./MultiUrlDialog.vue";
 import SettingsDialog from "./SettingsDialog.vue";
+import TaggedUrlDialog from "./TaggedUrlDialog.vue";
 import UrlManagerDialog from "./UrlManagerDialog.vue";
 
 import { useLogic } from "@/composables/useLogic";
@@ -20,9 +21,17 @@ const settingsStore = useSettingsStore();
 const { handleGenerateClick, handleManualPoll, handleClearData } = useLogic();
 
 const multiUrlDialogVisible = ref(false);
+const taggedUrlDialogVisible = ref(false);
 const urlManagerDialogVisible = ref(false);
 
 const generateMenuItems = [
+  {
+    label: "Generate Tagged URL...",
+    icon: "fas fa-tag",
+    command: () => {
+      taggedUrlDialogVisible.value = true;
+    },
+  },
   {
     label: "Generate Multiple...",
     icon: "fas fa-list",
@@ -107,5 +116,6 @@ function handleDeleteSelected() {
 
   <SettingsDialog />
   <MultiUrlDialog v-model:visible="multiUrlDialogVisible" />
+  <TaggedUrlDialog v-model:visible="taggedUrlDialogVisible" />
   <UrlManagerDialog v-model:visible="urlManagerDialogVisible" />
 </template>

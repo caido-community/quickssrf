@@ -20,6 +20,7 @@ export interface ActiveUrl {
   createdAt: string;
   isActive: boolean;
   serverUrl: string;
+  tag?: string;
 }
 
 interface ServerClient {
@@ -96,7 +97,7 @@ export class InteractshStore {
     }
   }
 
-  private parseInteraction(json: Record<string, unknown>): Interaction {
+  private parseInteraction(json: Record<string, unknown>, tag?: string): Interaction {
     const toString = (value: unknown): string => {
       if (typeof value === "string") {
         return value;
@@ -117,6 +118,7 @@ export class InteractshStore {
       rawResponse: toString(json["raw-response"] ?? ""),
       remoteAddress: toString(json["remote-address"] ?? ""),
       timestamp: toString(json.timestamp ?? new Date().toISOString()),
+      tag,
     };
   }
 
@@ -153,29 +155,29 @@ export class InteractshStore {
         correlationIdNonceLength: this.currentOptions.correlationIdNonceLength,
       },
       (interaction: Record<string, unknown>) => {
-        const parsed = this.parseInteraction(interaction);
-
         // Check if this interaction's URL is tracked and active
-        const fullId = parsed.fullId;
+        const fullId = String(interaction["full-id"] ?? "");
         const matchingUrl = this.activeUrls.find(
           (u) => fullId.startsWith(u.uniqueId) || u.uniqueId === fullId,
         );
 
         // Only add interaction if URL is found AND is active
         if (matchingUrl && matchingUrl.isActive) {
+          // Pass the tag from the matching URL to the interaction
+          const parsed = this.parseInteraction(interaction, matchingUrl.tag);
           this.interactions.push(parsed);
           // Don't emit event for new interactions - polling handles this
           this.savePersistedData(false);
           this.sdk.console.log(
-            `New interaction received: ${parsed.protocol}`,
+            `New interaction received: ${parsed.protocol}${parsed.tag ? ` [${parsed.tag}]` : ""}`,
           );
         } else if (matchingUrl && !matchingUrl.isActive) {
           this.sdk.console.log(
-            `Interaction ignored (URL disabled): ${parsed.fullId}`,
+            `Interaction ignored (URL disabled): ${fullId}`,
           );
         } else {
           this.sdk.console.log(
-            `Interaction ignored (URL not tracked): ${parsed.fullId}`,
+            `Interaction ignored (URL not tracked): ${fullId}`,
           );
         }
       },
@@ -213,7 +215,7 @@ export class InteractshStore {
     }
   }
 
-  async generateUrl(serverUrl: string): Promise<GenerateUrlResult> {
+  async generateUrl(serverUrl: string, tag?: string): Promise<GenerateUrlResult> {
     if (!this.isStarted) {
       throw new Error("Interactsh store not started");
     }
@@ -228,6 +230,7 @@ export class InteractshStore {
       createdAt: new Date().toISOString(),
       isActive: true,
       serverUrl,
+      tag,
     });
 
     this.savePersistedData(false);
@@ -380,5 +383,16 @@ export class InteractshStore {
 
   getFilter(): string {
     return this.filter;
+  }
+
+  // Update tag for an interaction
+  setInteractionTag(uniqueId: string, tag: string | undefined): boolean {
+    const interaction = this.interactions.find((i) => i.uniqueId === uniqueId);
+    if (interaction) {
+      interaction.tag = tag;
+      this.savePersistedData();
+      return true;
+    }
+    return false;
   }
 }

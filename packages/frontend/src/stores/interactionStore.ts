@@ -104,6 +104,8 @@ export const useInteractionStore = defineStore("interaction", () => {
       case "payload":
       case "id":
         return item.fullId.toLowerCase();
+      case "tag":
+        return (item.tag || "").toLowerCase();
       default:
         return "";
     }
@@ -324,7 +326,7 @@ export const useInteractionStore = defineStore("interaction", () => {
     lastInteractionIndex.value = 0;
   }
 
-  async function generateUrl() {
+  async function generateUrl(tag?: string) {
     const initialized = await initializeService();
     if (!initialized) {
       return null;
@@ -334,8 +336,11 @@ export const useInteractionStore = defineStore("interaction", () => {
     // Get effective server URL (handles random mode - picks a new random server each time)
     const serverUrl = settings.getEffectiveServerUrl();
 
+    // Only pass tag if it's defined (Caido API doesn't handle undefined well)
     const { data: result, error } = await tryCatch(
-      sdk.backend.generateInteractshUrl(serverUrl),
+      tag
+        ? sdk.backend.generateInteractshUrl(serverUrl, tag)
+        : sdk.backend.generateInteractshUrl(serverUrl),
     );
 
     if (error) {
@@ -575,6 +580,21 @@ export const useInteractionStore = defineStore("interaction", () => {
     }
   }
 
+  // Update tag for an interaction
+  async function setInteractionTag(uniqueId: string, tag: string | undefined) {
+    // Skip next event since we're making the change
+    skipNextDataChangeEvent = true;
+
+    // Update backend first
+    await sdk.backend.setInteractionTag(uniqueId, tag);
+
+    // Then update local state
+    const interaction = data.value.find((item) => item.uniqueId === uniqueId);
+    if (interaction) {
+      interaction.tag = tag;
+    }
+  }
+
   // Generate multiple URLs
   async function generateMultipleUrls(count: number): Promise<string[]> {
     const initialized = await initializeService();
@@ -627,5 +647,6 @@ export const useInteractionStore = defineStore("interaction", () => {
     subscribeToFilterChanged,
     setFilterQuery,
     loadFilter,
+    setInteractionTag,
   };
 });

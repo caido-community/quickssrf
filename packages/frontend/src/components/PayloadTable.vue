@@ -3,6 +3,7 @@ import Button from "primevue/button";
 import Column from "primevue/column";
 import ContextMenu from "primevue/contextmenu";
 import DataTable from "primevue/datatable";
+import InputText from "primevue/inputtext";
 
 import { ref, onMounted, onBeforeUnmount, computed, nextTick } from "vue";
 
@@ -82,6 +83,27 @@ function deleteRow(uniqueId: string) {
     editorStore.clearEditors();
     uiStore.selectedRow = undefined;
   }
+}
+
+// Tag editing
+const editingTagId = ref<string | null>(null);
+const editingTagValue = ref("");
+
+function startEditTag(uniqueId: string, currentTag: string | undefined) {
+  editingTagId.value = uniqueId;
+  editingTagValue.value = currentTag || "";
+}
+
+function saveTag(uniqueId: string) {
+  const newTag = editingTagValue.value.trim() || undefined;
+  interactionStore.setInteractionTag(uniqueId, newTag);
+  editingTagId.value = null;
+  editingTagValue.value = "";
+}
+
+function cancelEditTag() {
+  editingTagId.value = null;
+  editingTagValue.value = "";
 }
 
 function getRowStyle(data: Interaction) {
@@ -221,6 +243,30 @@ onBeforeUnmount(() => {
         style="width: 130px"
       />
       <Column field="fullId" header="Payload" sortable />
+      <Column field="tag" header="Tag" sortable style="width: 150px">
+        <template #body="{ data }">
+          <div
+            v-if="editingTagId !== data.uniqueId"
+            class="cursor-pointer hover:bg-surface-200 dark:hover:bg-surface-700 px-2 py-1 rounded min-h-[28px] flex items-center"
+            @click.stop="startEditTag(data.uniqueId, data.tag)"
+          >
+            <span v-if="data.tag" class="text-primary-500">{{ data.tag }}</span>
+            <span v-else class="text-surface-400 italic text-sm">Click to add</span>
+          </div>
+          <div v-else class="flex items-center gap-1" @click.stop>
+            <InputText
+              v-model="editingTagValue"
+              size="small"
+              class="w-full"
+              placeholder="Enter tag..."
+              autofocus
+              @keyup.enter="saveTag(data.uniqueId)"
+              @keyup.escape="cancelEditTag"
+              @blur="saveTag(data.uniqueId)"
+            />
+          </div>
+        </template>
+      </Column>
       <Column
         field="localDateTime"
         header="Date-Time"

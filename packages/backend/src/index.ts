@@ -18,6 +18,7 @@ import {
   pollInteractsh,
   removeUrl,
   setFilter,
+  setInteractionTag,
   setUrlActive,
   startInteractsh,
   stopInteractsh,
@@ -51,6 +52,7 @@ export type API = DefineAPI<{
   clearAllData: typeof clearAllData;
   setFilter: typeof setFilter;
   getFilter: typeof getFilter;
+  setInteractionTag: typeof setInteractionTag;
 }>;
 
 // Events that can be sent from backend to frontend
@@ -126,4 +128,7 @@ export function init(sdk: SDK<API, BackendEvents>) {
   // Filter API
   sdk.api.register("setFilter", setFilter);
   sdk.api.register("getFilter", getFilter);
+
+  // Tag API
+  sdk.api.register("setInteractionTag", setInteractionTag);
 }

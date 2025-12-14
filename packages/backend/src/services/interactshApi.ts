@@ -24,9 +24,10 @@ export const stopInteractsh = async (sdk: SDK): Promise<boolean> => {
 export const generateInteractshUrl = async (
   sdk: SDK,
   serverUrl: string,
+  tag?: string,
 ): Promise<GenerateUrlResult> => {
   const store = InteractshStore.get(sdk);
-  return store.generateUrl(serverUrl);
+  return store.generateUrl(serverUrl, tag);
 };
 
 export const getInteractions = (sdk: SDK): Interaction[] => {
@@ -120,4 +121,13 @@ export const setFilter = (sdk: SDK, filter: string): void => {
 export const getFilter = (sdk: SDK): string => {
   const store = InteractshStore.get(sdk);
   return store.getFilter();
+};
+
+export const setInteractionTag = (
+  sdk: SDK,
+  uniqueId: string,
+  tag: string | undefined,
+): boolean => {
+  const store = InteractshStore.get(sdk);
+  return store.setInteractionTag(uniqueId, tag);
 };
