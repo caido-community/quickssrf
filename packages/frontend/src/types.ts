@@ -1,16 +1,10 @@
 import type { Caido } from "@caido/sdk-frontend";
-import type { API } from "backend";
+import type { API, BackendEvents } from "backend";
 
-export type FrontendSDK = Caido<API, never>;
+export type FrontendSDK = Caido<API, BackendEvents>;
 
-export type Interaction = {
-  protocol: string;
-  uniqueId: string;
-  fullId: string;
-  qType: string;
-  rawRequest: string;
-  rawResponse: string;
-  remoteAddress: string;
-  timestamp: string;
+import type { Interaction as BaseInteraction } from "shared";
+
+export interface Interaction extends BaseInteraction {
   httpPath: string;
-};
+}

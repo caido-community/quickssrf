@@ -52,6 +52,16 @@ export const clearInteractions = (sdk: SDK): void => {
   store.clearInteractions();
 };
 
+export const deleteInteraction = (sdk: SDK, uniqueId: string): boolean => {
+  const store = InteractshStore.get(sdk);
+  return store.deleteInteraction(uniqueId);
+};
+
+export const deleteInteractions = (sdk: SDK, uniqueIds: string[]): number => {
+  const store = InteractshStore.get(sdk);
+  return store.deleteInteractions(uniqueIds);
+};
+
 export const getInteractshStatus = (
   sdk: SDK,
 ): { isStarted: boolean; interactionCount: number } => {
@@ -82,6 +92,11 @@ export const removeUrl = (sdk: SDK, uniqueId: string): boolean => {
 export const clearUrls = (sdk: SDK): void => {
   const store = InteractshStore.get(sdk);
   store.clearUrls();
+};
+
+export const clearAllData = (sdk: SDK): void => {
+  const store = InteractshStore.get(sdk);
+  store.clearAllData();
 };
 
 export const initializeClients = async (

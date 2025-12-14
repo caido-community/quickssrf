@@ -15,6 +15,7 @@ export interface Interaction {
   rawResponse: string;
   remoteAddress: string;
   timestamp: string;
+  httpPath?: string;
 }
 
 export interface InteractshStartOptions {

@@ -20,6 +20,9 @@ export const useInteractionStore = defineStore("interaction", () => {
   const rowColors = ref<Record<string, string>>({});
   let pollingIntervalId: ReturnType<typeof setInterval> | undefined;
 
+  // Flag to skip next data change event (when we made the change ourselves)
+  let skipNextDataChangeEvent = false;
+
   // Filter condition type: field.operator:"value"
   type FilterCondition = {
     field: string;
@@ -353,15 +356,19 @@ export const useInteractionStore = defineStore("interaction", () => {
   }
 
   function clearData(resetService = false) {
+    // Skip next event since we're making the change
+    skipNextDataChangeEvent = true;
+
     data.value = [];
     lastInteractionIndex.value = 0;
     selectedRows.value = [];
+    rowColors.value = {};
 
     uiStore.setBtnCount(0);
     sidebarItem.setCount(uiStore.btnCount);
 
-    // Clear interactions on backend too
-    sdk.backend.clearInteractions();
+    // Clear all data on backend (interactions + URLs + persisted data)
+    sdk.backend.clearAllData();
 
     if (resetService) {
       resetClientService();
@@ -371,7 +378,14 @@ export const useInteractionStore = defineStore("interaction", () => {
   }
 
   // Delete a single interaction by uniqueId
-  function deleteInteraction(uniqueId: string) {
+  async function deleteInteraction(uniqueId: string) {
+    // Skip next event since we're making the change
+    skipNextDataChangeEvent = true;
+
+    // Delete from backend first
+    await sdk.backend.deleteInteraction(uniqueId);
+
+    // Then update local state
     const index = data.value.findIndex((item) => item.uniqueId === uniqueId);
     if (index !== -1) {
       data.value.splice(index, 1);
@@ -385,9 +399,18 @@ export const useInteractionStore = defineStore("interaction", () => {
   }
 
   // Delete all selected interactions
-  function deleteSelected() {
-    const selectedIds = new Set(selectedRows.value.map((item) => item.uniqueId));
-    data.value = data.value.filter((item) => !selectedIds.has(item.uniqueId));
+  async function deleteSelected() {
+    // Skip next event since we're making the change
+    skipNextDataChangeEvent = true;
+
+    const selectedIds = selectedRows.value.map((item) => item.uniqueId);
+
+    // Delete from backend first
+    await sdk.backend.deleteInteractions(selectedIds);
+
+    // Then update local state
+    const selectedIdsSet = new Set(selectedIds);
+    data.value = data.value.filter((item) => !selectedIdsSet.has(item.uniqueId));
     // Also remove colors
     for (const id of selectedIds) {
       delete rowColors.value[id];
@@ -412,6 +435,65 @@ export const useInteractionStore = defineStore("interaction", () => {
   // Get row color
   function getRowColor(fullId: string): string | undefined {
     return rowColors.value[fullId];
+  }
+
+  // Load persisted data from backend
+  async function loadPersistedData() {
+    const { data: interactions, error } = await tryCatch(
+      sdk.backend.getInteractions(),
+    );
+
+    if (!error && interactions && interactions.length > 0) {
+      // Process interactions to add httpPath
+      for (const interaction of interactions) {
+        const processed = processInteraction(interaction);
+        data.value.push(processed);
+      }
+      lastInteractionIndex.value = interactions.length;
+      console.log(`Loaded ${interactions.length} interactions from backend`);
+    }
+  }
+
+  // Reload all data from backend (called when data changes externally)
+  async function reloadData() {
+    const { data: interactions, error } = await tryCatch(
+      sdk.backend.getInteractions(),
+    );
+
+    if (error) {
+      console.error("Failed to reload data:", error);
+      return;
+    }
+
+    // Clear current data and reload
+    data.value = [];
+    selectedRows.value = [];
+
+    if (interactions && interactions.length > 0) {
+      for (const interaction of interactions) {
+        const processed = processInteraction(interaction);
+        data.value.push(processed);
+      }
+      lastInteractionIndex.value = interactions.length;
+      console.log(`Reloaded ${interactions.length} interactions from backend`);
+    } else {
+      lastInteractionIndex.value = 0;
+    }
+  }
+
+  // Subscribe to backend data change events
+  function subscribeToDataChanges() {
+    const subscription = sdk.backend.onEvent("onDataChanged", () => {
+      // Skip if we made the change ourselves
+      if (skipNextDataChangeEvent) {
+        skipNextDataChangeEvent = false;
+        console.log("Data changed event received, skipping (self-triggered)");
+        return;
+      }
+      console.log("Data changed event received, reloading...");
+      reloadData();
+    });
+    return subscription;
   }
 
   // Generate multiple URLs
@@ -459,5 +541,8 @@ export const useInteractionStore = defineStore("interaction", () => {
     resetClientService,
     setRowColor,
     getRowColor,
+    loadPersistedData,
+    reloadData,
+    subscribeToDataChanges,
   };
 });

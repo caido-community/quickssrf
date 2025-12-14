@@ -1,3 +1,6 @@
+import * as fs from "fs";
+import * as path from "path";
+
 import type { SDK } from "caido:plugin";
 import type {
   GenerateUrlResult,
@@ -5,6 +8,7 @@ import type {
   InteractshStartOptions,
 } from "shared";
 
+import { emitDataChanged } from "../index";
 import {
   createInteractshClient,
   type InteractshClient,
@@ -23,6 +27,12 @@ interface ServerClient {
   serverUrl: string;
 }
 
+interface PersistedData {
+  interactions: Interaction[];
+  activeUrls: ActiveUrl[];
+  interactionCounter: number;
+}
+
 export class InteractshStore {
   private static _instance?: InteractshStore;
   private clients: Map<string, ServerClient> = new Map();
@@ -32,9 +42,12 @@ export class InteractshStore {
   private isStarted = false;
   private interactionCounter = 0;
   private currentOptions: InteractshStartOptions | undefined;
+  private readonly dataPath: string;
 
   private constructor(sdk: SDK) {
     this.sdk = sdk;
+    this.dataPath = path.join(this.sdk.meta.path(), "data.json");
+    this.loadPersistedData();
   }
 
   static get(sdk: SDK): InteractshStore {
@@ -42,6 +55,40 @@ export class InteractshStore {
       InteractshStore._instance = new InteractshStore(sdk);
     }
     return InteractshStore._instance;
+  }
+
+  private loadPersistedData(): void {
+    try {
+      const fileData = fs.readFileSync(this.dataPath, { encoding: "utf-8" });
+      const parsed: PersistedData = JSON.parse(fileData);
+      this.interactions = parsed.interactions || [];
+      this.activeUrls = parsed.activeUrls || [];
+      this.interactionCounter = parsed.interactionCounter || 0;
+      this.sdk.console.log(
+        `Loaded persisted data: ${this.interactions.length} interactions, ${this.activeUrls.length} URLs`,
+      );
+    } catch {
+      // File doesn't exist yet or is invalid - start with empty data
+      this.interactions = [];
+      this.activeUrls = [];
+      this.interactionCounter = 0;
+    }
+  }
+
+  private savePersistedData(notify = true): void {
+    try {
+      const persistData: PersistedData = {
+        interactions: this.interactions,
+        activeUrls: this.activeUrls,
+        interactionCounter: this.interactionCounter,
+      };
+      fs.writeFileSync(this.dataPath, JSON.stringify(persistData, null, 2));
+      if (notify) {
+        emitDataChanged();
+      }
+    } catch (error) {
+      this.sdk.console.error(`Failed to save persisted data: ${error}`);
+    }
   }
 
   private parseInteraction(json: Record<string, unknown>): Interaction {
@@ -112,6 +159,8 @@ export class InteractshStore {
         // Only add interaction if URL is found AND is active
         if (matchingUrl && matchingUrl.isActive) {
           this.interactions.push(parsed);
+          // Don't emit event for new interactions - polling handles this
+          this.savePersistedData(false);
           this.sdk.console.log(
             `New interaction received: ${parsed.protocol}`,
           );
@@ -176,6 +225,8 @@ export class InteractshStore {
       serverUrl,
     });
 
+    // Don't emit event for URL generation - the requesting client handles it
+    this.savePersistedData(false);
     return result;
   }
 
@@ -204,6 +255,28 @@ export class InteractshStore {
 
   clearInteractions(): void {
     this.interactions = [];
+    this.savePersistedData();
+  }
+
+  deleteInteraction(uniqueId: string): boolean {
+    const index = this.interactions.findIndex((i) => i.uniqueId === uniqueId);
+    if (index !== -1) {
+      this.interactions.splice(index, 1);
+      this.savePersistedData();
+      return true;
+    }
+    return false;
+  }
+
+  deleteInteractions(uniqueIds: string[]): number {
+    const idsSet = new Set(uniqueIds);
+    const initialLength = this.interactions.length;
+    this.interactions = this.interactions.filter((i) => !idsSet.has(i.uniqueId));
+    const deletedCount = initialLength - this.interactions.length;
+    if (deletedCount > 0) {
+      this.savePersistedData();
+    }
+    return deletedCount;
   }
 
   getStatus(): { isStarted: boolean; interactionCount: number } {
@@ -222,6 +295,7 @@ export class InteractshStore {
     const url = this.activeUrls.find((u) => u.uniqueId === uniqueId);
     if (url) {
       url.isActive = isActive;
+      this.savePersistedData();
       this.sdk.console.log(
         `URL ${uniqueId} set to ${isActive ? "active" : "inactive"}`,
       );
@@ -234,6 +308,7 @@ export class InteractshStore {
     const index = this.activeUrls.findIndex((u) => u.uniqueId === uniqueId);
     if (index !== -1) {
       this.activeUrls.splice(index, 1);
+      this.savePersistedData();
       this.sdk.console.log(`URL ${uniqueId} removed from tracking`);
       return true;
     }
@@ -242,7 +317,17 @@ export class InteractshStore {
 
   clearUrls(): void {
     this.activeUrls = [];
+    this.savePersistedData();
     this.sdk.console.log("All tracked URLs cleared");
+  }
+
+  // Clear all persisted data (interactions, URLs, counter)
+  clearAllData(): void {
+    this.interactions = [];
+    this.activeUrls = [];
+    this.interactionCounter = 0;
+    this.savePersistedData();
+    this.sdk.console.log("All data cleared");
   }
 
   // Pre-initialize clients for multiple servers (for random mode)

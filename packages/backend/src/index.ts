@@ -1,9 +1,12 @@
-import type { DefineAPI, SDK } from "caido:plugin";
+import type { DefineAPI, DefineEvents, SDK } from "caido:plugin";
 
 import { initializeRSAKeys } from "./services/crypto";
 import {
+  clearAllData,
   clearInteractions,
   clearUrls,
+  deleteInteraction,
+  deleteInteractions,
   generateInteractshUrl,
   getActiveUrls,
   getClientCount,
@@ -34,6 +37,8 @@ export type API = DefineAPI<{
   getNewInteractions: typeof getNewInteractions;
   pollInteractsh: typeof pollInteractsh;
   clearInteractions: typeof clearInteractions;
+  deleteInteraction: typeof deleteInteraction;
+  deleteInteractions: typeof deleteInteractions;
   getInteractshStatus: typeof getInteractshStatus;
   getActiveUrls: typeof getActiveUrls;
   setUrlActive: typeof setUrlActive;
@@ -41,9 +46,28 @@ export type API = DefineAPI<{
   clearUrls: typeof clearUrls;
   initializeClients: typeof initializeClients;
   getClientCount: typeof getClientCount;
+  clearAllData: typeof clearAllData;
 }>;
 
-export function init(sdk: SDK<API>) {
+// Events that can be sent from backend to frontend
+export type BackendEvents = DefineEvents<{
+  onDataChanged: () => void;
+}>;
+
+let sdkInstance: SDK<API, BackendEvents> | null = null;
+
+export function getSDK(): SDK<API, BackendEvents> | null {
+  return sdkInstance;
+}
+
+export function emitDataChanged(): void {
+  if (sdkInstance) {
+    sdkInstance.api.send("onDataChanged");
+  }
+}
+
+export function init(sdk: SDK<API, BackendEvents>) {
+  sdkInstance = sdk;
   sdk.console.log("Initializing QuickSSRF backend");
 
   // Pre-initialize RSA keys for faster first request
@@ -64,6 +88,8 @@ export function init(sdk: SDK<API>) {
   sdk.api.register("getNewInteractions", getNewInteractions);
   sdk.api.register("pollInteractsh", pollInteractsh);
   sdk.api.register("clearInteractions", clearInteractions);
+  sdk.api.register("deleteInteraction", deleteInteraction);
+  sdk.api.register("deleteInteractions", deleteInteractions);
   sdk.api.register("getInteractshStatus", getInteractshStatus);
 
   // URL Management API
@@ -75,4 +101,7 @@ export function init(sdk: SDK<API>) {
   // Client Management API
   sdk.api.register("initializeClients", initializeClients);
   sdk.api.register("getClientCount", getClientCount);
+
+  // Data Management API
+  sdk.api.register("clearAllData", clearAllData);
 }

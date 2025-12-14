@@ -3,25 +3,40 @@ import Button from "primevue/button";
 import Splitter from "primevue/splitter";
 import SplitterPanel from "primevue/splitterpanel";
 import Tooltip from "primevue/tooltip";
-import { onMounted, toRef } from "vue";
+import { onMounted, onUnmounted, toRef } from "vue";
 
 import ActionBar from "@/components/ActionBar.vue";
 import FilterBar from "@/components/FilterBar.vue";
 import PayloadTable from "@/components/PayloadTable.vue";
 import { useLogic } from "@/composables/useLogic";
+import { useInteractionStore } from "@/stores/interactionStore";
 import { useUIStore } from "@/stores/uiStore";
 
 const vTooltip = Tooltip;
 const { requestEl, responseEl, initializeEditors } = useLogic();
 
 const uiStore = useUIStore();
+const interactionStore = useInteractionStore();
 const selectedRow = toRef(uiStore, "selectedRow");
 const openGitHub = () => {
   window.open("https://github.com/caido-community/quickssrf", "_blank");
 };
 
-onMounted(() => {
+let dataChangeSubscription: { stop: () => void } | null = null;
+
+onMounted(async () => {
   initializeEditors();
+  // Load persisted data from backend
+  await interactionStore.loadPersistedData();
+  // Subscribe to data change events from backend
+  dataChangeSubscription = interactionStore.subscribeToDataChanges();
+});
+
+onUnmounted(() => {
+  // Clean up subscription
+  if (dataChangeSubscription) {
+    dataChangeSubscription.stop();
+  }
 });
 </script>
 <template>
