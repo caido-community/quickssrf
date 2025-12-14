@@ -3,9 +3,10 @@ import Button from "primevue/button";
 import Dialog from "primevue/dialog";
 import InputNumber from "primevue/inputnumber";
 import InputText from "primevue/inputtext";
+import Select from "primevue/select";
 import { onBeforeUnmount, onMounted, ref } from "vue";
 
-import { useSettingsStore } from "@/stores/settingsStore";
+import { SERVER_PRESETS, useSettingsStore } from "@/stores/settingsStore";
 
 const settingsStore = useSettingsStore();
 const showToken = ref(false);
@@ -46,11 +47,27 @@ const handleKeyDown = (event: KeyboardEvent) => {
   >
     <div class="flex flex-col gap-4 p-2">
       <div class="flex flex-col gap-2">
-        <label for="serverURL" class="font-medium text-sm">Server URL</label>
+        <label for="serverMode" class="font-medium text-sm">Server</label>
+        <Select
+          id="serverMode"
+          v-model="settingsStore.serverMode"
+          :options="SERVER_PRESETS"
+          option-label="label"
+          option-value="value"
+          placeholder="Select a server"
+          class="w-full"
+        />
+        <small v-if="settingsStore.serverMode === 'random'" class="text-gray-500">
+          A random server will be selected for each URL generation
+        </small>
+      </div>
+
+      <div v-if="settingsStore.serverMode === 'custom'" class="flex flex-col gap-2">
+        <label for="serverURL" class="font-medium text-sm">Custom Server URL</label>
         <InputText
           id="serverURL"
           v-model="settingsStore.serverURL"
-          placeholder="Enter server URL"
+          placeholder="https://your-server.com"
           class="p-2 w-full"
         />
       </div>
@@ -85,6 +102,38 @@ const handleKeyDown = (event: KeyboardEvent) => {
           :step="1000"
           class="w-full"
         />
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label for="correlationIdLength" class="font-medium text-sm"
+          >Correlation ID Length</label
+        >
+        <InputNumber
+          id="correlationIdLength"
+          v-model="settingsStore.correlationIdLength"
+          :min="1"
+          :max="63"
+          class="w-full"
+        />
+        <small class="text-gray-500"
+          >Must match your interactsh-server -cidl (default: 20)</small
+        >
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label for="correlationIdNonceLength" class="font-medium text-sm"
+          >Correlation ID Nonce Length</label
+        >
+        <InputNumber
+          id="correlationIdNonceLength"
+          v-model="settingsStore.correlationIdNonceLength"
+          :min="1"
+          :max="63"
+          class="w-full"
+        />
+        <small class="text-gray-500"
+          >Must match your interactsh-server -cidn (default: 13)</small
+        >
       </div>
     </div>
 

@@ -9,6 +9,8 @@ const defaultSettings = {
   serverURL: "https://oast.site",
   token: crypto.randomUUID(),
   pollingInterval: 30_000,
+  correlationIdLength: 20,
+  correlationIdNonceLength: 13,
 };
 
 export class SettingsStore {
@@ -30,10 +32,31 @@ export class SettingsStore {
     return SettingsStore._instance;
   }
 
+  private validateSettings(settings: Settings): Settings {
+    // Validation based on interactsh-client behavior:
+    // - cidl/cidn must be >= 1 (negative values cause panic)
+    // - No upper limit in code, but DNS labels are max 63 chars
+    // - Combined length should stay reasonable for DNS compatibility
+    return {
+      ...settings,
+      pollingInterval: Math.max(1000, settings.pollingInterval ?? 30_000),
+      correlationIdLength: Math.min(
+        63,
+        Math.max(1, settings.correlationIdLength ?? 20),
+      ),
+      correlationIdNonceLength: Math.min(
+        63,
+        Math.max(1, settings.correlationIdNonceLength ?? 13),
+      ),
+    };
+  }
+
   private loadSettings(): Settings {
     try {
       const data = fs.readFileSync(this.configPath, { encoding: "utf-8" });
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      // Validate and merge with defaults for any missing fields
+      return this.validateSettings({ ...defaultSettings, ...parsed });
     } catch (error) {
       this.settings = {
         ...defaultSettings,
@@ -61,9 +84,30 @@ export class SettingsStore {
   }
 
   updateSettings(sdk: SDK, newSettings: Partial<Settings>): Settings {
+    // Validate settings before applying
+    const validated = { ...newSettings };
+
+    if (validated.pollingInterval !== undefined) {
+      validated.pollingInterval = Math.max(1000, validated.pollingInterval);
+    }
+
+    if (validated.correlationIdLength !== undefined) {
+      validated.correlationIdLength = Math.min(
+        63,
+        Math.max(1, validated.correlationIdLength),
+      );
+    }
+
+    if (validated.correlationIdNonceLength !== undefined) {
+      validated.correlationIdNonceLength = Math.min(
+        63,
+        Math.max(1, validated.correlationIdNonceLength),
+      );
+    }
+
     this.settings = {
       ...this.settings,
-      ...newSettings,
+      ...validated,
     };
     this.saveSettings();
     return this.getSettings();

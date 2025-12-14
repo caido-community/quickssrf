@@ -1,26 +1,68 @@
 <script setup lang="ts">
 import Button from "primevue/button";
+import ContextMenu from "primevue/contextmenu";
 import Splitter from "primevue/splitter";
 import SplitterPanel from "primevue/splitterpanel";
 import Tooltip from "primevue/tooltip";
-import { onMounted, toRef } from "vue";
+import { onMounted, onUnmounted, toRef } from "vue";
 
 import ActionBar from "@/components/ActionBar.vue";
+import FilterBar from "@/components/FilterBar.vue";
 import PayloadTable from "@/components/PayloadTable.vue";
 import { useLogic } from "@/composables/useLogic";
+import { useInteractionStore } from "@/stores/interactionStore";
 import { useUIStore } from "@/stores/uiStore";
 
 const vTooltip = Tooltip;
-const { requestEl, responseEl, initializeEditors } = useLogic();
+const { requestEl, responseEl, contextMenuRef, initializeEditors, copySelectedText } = useLogic();
+
+const contextMenuItems = [
+  {
+    label: "Copy",
+    icon: "fas fa-copy",
+    command: () => copySelectedText(),
+  },
+];
 
 const uiStore = useUIStore();
+const interactionStore = useInteractionStore();
 const selectedRow = toRef(uiStore, "selectedRow");
 const openGitHub = () => {
   window.open("https://github.com/caido-community/quickssrf", "_blank");
 };
 
-onMounted(() => {
+let dataChangeSubscription: { stop: () => void } | null = null;
+let urlGeneratedSubscription: { stop: () => void } | null = null;
+let filterChangedSubscription: { stop: () => void } | null = null;
+let filterEnabledChangedSubscription: { stop: () => void } | null = null;
+
+onMounted(async () => {
   initializeEditors();
+  // Load persisted data from backend
+  await interactionStore.loadPersistedData();
+  // Load filter from backend
+  await interactionStore.loadFilter();
+  // Subscribe to backend events
+  dataChangeSubscription = interactionStore.subscribeToDataChanges();
+  urlGeneratedSubscription = interactionStore.subscribeToUrlGenerated();
+  filterChangedSubscription = interactionStore.subscribeToFilterChanged();
+  filterEnabledChangedSubscription = interactionStore.subscribeToFilterEnabledChanged();
+});
+
+onUnmounted(() => {
+  // Clean up subscriptions
+  if (dataChangeSubscription) {
+    dataChangeSubscription.stop();
+  }
+  if (urlGeneratedSubscription) {
+    urlGeneratedSubscription.stop();
+  }
+  if (filterChangedSubscription) {
+    filterChangedSubscription.stop();
+  }
+  if (filterEnabledChangedSubscription) {
+    filterEnabledChangedSubscription.stop();
+  }
 });
 </script>
 <template>
@@ -38,15 +80,16 @@ onMounted(() => {
           <Button
             v-tooltip="'Support the project on GitHub'"
             label="Star on GitHub"
-            icon="fas fa-star"
+            icon="fas fa-star star-icon"
             class="font-medium"
             @click="openGitHub"
           />
         </header>
 
         <!-- Controls -->
-        <div class="p-4">
+        <div class="p-4 flex flex-col gap-3">
           <ActionBar />
+          <FilterBar />
         </div>
 
         <!-- Table -->
@@ -85,4 +128,7 @@ onMounted(() => {
       </div>
     </SplitterPanel>
   </Splitter>
+
+  <!-- Context menu for editors -->
+  <ContextMenu ref="contextMenuRef" :model="contextMenuItems" />
 </template>
