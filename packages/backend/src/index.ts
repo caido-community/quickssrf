@@ -52,6 +52,7 @@ export type API = DefineAPI<{
 // Events that can be sent from backend to frontend
 export type BackendEvents = DefineEvents<{
   onDataChanged: () => void;
+  onUrlGenerated: (url: string) => void;
 }>;
 
 let sdkInstance: SDK<API, BackendEvents> | null = null;
@@ -63,6 +64,12 @@ export function getSDK(): SDK<API, BackendEvents> | null {
 export function emitDataChanged(): void {
   if (sdkInstance) {
     sdkInstance.api.send("onDataChanged");
+  }
+}
+
+export function emitUrlGenerated(url: string): void {
+  if (sdkInstance) {
+    sdkInstance.api.send("onUrlGenerated", url);
   }
 }
 

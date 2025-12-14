@@ -8,7 +8,7 @@ import type {
   InteractshStartOptions,
 } from "shared";
 
-import { emitDataChanged } from "../index";
+import { emitDataChanged, emitUrlGenerated } from "../index";
 import {
   createInteractshClient,
   type InteractshClient,
@@ -225,8 +225,9 @@ export class InteractshStore {
       serverUrl,
     });
 
-    // Don't emit event for URL generation - the requesting client handles it
     this.savePersistedData(false);
+    // Emit URL generated event to sync across tabs
+    emitUrlGenerated(result.url);
     return result;
   }
 

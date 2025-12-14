@@ -23,19 +23,24 @@ const openGitHub = () => {
 };
 
 let dataChangeSubscription: { stop: () => void } | null = null;
+let urlGeneratedSubscription: { stop: () => void } | null = null;
 
 onMounted(async () => {
   initializeEditors();
   // Load persisted data from backend
   await interactionStore.loadPersistedData();
-  // Subscribe to data change events from backend
+  // Subscribe to backend events
   dataChangeSubscription = interactionStore.subscribeToDataChanges();
+  urlGeneratedSubscription = interactionStore.subscribeToUrlGenerated();
 });
 
 onUnmounted(() => {
-  // Clean up subscription
+  // Clean up subscriptions
   if (dataChangeSubscription) {
     dataChangeSubscription.stop();
+  }
+  if (urlGeneratedSubscription) {
+    urlGeneratedSubscription.stop();
   }
 });
 </script>

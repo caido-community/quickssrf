@@ -437,8 +437,24 @@ export const useInteractionStore = defineStore("interaction", () => {
     return rowColors.value[fullId];
   }
 
-  // Load persisted data from backend
+  // Load persisted data from backend and restore service state
   async function loadPersistedData() {
+    const uiStore = useUIStore();
+    const settings = useSettingsStore();
+
+    // Check if backend service is already started
+    const { data: status, error: statusError } = await tryCatch(
+      sdk.backend.getInteractshStatus(),
+    );
+
+    if (!statusError && status?.isStarted) {
+      // Backend is already running, sync frontend state
+      isStarted.value = true;
+      startPolling(settings.pollingInterval);
+      console.log("Backend service already running, synced frontend state");
+    }
+
+    // Load interactions
     const { data: interactions, error } = await tryCatch(
       sdk.backend.getInteractions(),
     );
@@ -451,6 +467,20 @@ export const useInteractionStore = defineStore("interaction", () => {
       }
       lastInteractionIndex.value = interactions.length;
       console.log(`Loaded ${interactions.length} interactions from backend`);
+    }
+
+    // Load last generated URL from active URLs
+    const { data: activeUrls, error: urlsError } = await tryCatch(
+      sdk.backend.getActiveUrls(),
+    );
+
+    if (!urlsError && activeUrls && activeUrls.length > 0) {
+      // Get the most recent URL (last in array)
+      const lastUrl = activeUrls[activeUrls.length - 1];
+      if (lastUrl) {
+        uiStore.setGeneratedUrl(lastUrl.url);
+        console.log(`Restored last generated URL: ${lastUrl.url}`);
+      }
     }
   }
 
@@ -492,6 +522,16 @@ export const useInteractionStore = defineStore("interaction", () => {
       }
       console.log("Data changed event received, reloading...");
       reloadData();
+    });
+    return subscription;
+  }
+
+  // Subscribe to URL generation events
+  function subscribeToUrlGenerated() {
+    const uiStore = useUIStore();
+    const subscription = sdk.backend.onEvent("onUrlGenerated", (url: string) => {
+      console.log("URL generated event received:", url);
+      uiStore.setGeneratedUrl(url);
     });
     return subscription;
   }
@@ -544,5 +584,6 @@ export const useInteractionStore = defineStore("interaction", () => {
     loadPersistedData,
     reloadData,
     subscribeToDataChanges,
+    subscribeToUrlGenerated,
   };
 });
