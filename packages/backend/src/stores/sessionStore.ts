@@ -1,6 +1,7 @@
 /**
- * Session persistence store using SQLite
+ * Session persistence store using Caido's secure environment variables
  * Handles storage of RSA keys and client sessions for resumption after restart
+ * Sensitive data is encrypted on disk using sdk.env.setVar with secret: true
  */
 
 import type { SDK } from "caido:plugin";
@@ -11,6 +12,10 @@ import {
   initializeRSAKeys,
   type SerializedRSAKeyPair,
 } from "../services/crypto";
+
+// Environment variable names for secure storage
+const ENV_RSA_KEYS = "QUICKSSRF_RSA_KEYS";
+const ENV_CLIENT_SESSIONS = "QUICKSSRF_CLIENT_SESSIONS";
 
 /**
  * Client session data for persistence
@@ -24,11 +29,11 @@ export interface ClientSession {
 
 /**
  * Session store for persisting interactsh client data
+ * Uses Caido's secure environment variables (encrypted on disk)
  */
 export class SessionStore {
   private static _instance?: SessionStore;
   private sdk: SDK;
-  private initialized = false;
 
   private constructor(sdk: SDK) {
     this.sdk = sdk;
@@ -42,53 +47,17 @@ export class SessionStore {
   }
 
   /**
-   * Initialize the database tables
-   */
-  async initialize(): Promise<void> {
-    if (this.initialized) {
-      return;
-    }
-
-    const db = await this.sdk.meta.db();
-
-    // Create RSA keys table
-    await db.exec(`
-      CREATE TABLE IF NOT EXISTS rsa_keys (
-        id INTEGER PRIMARY KEY CHECK (id = 1),
-        key_data TEXT NOT NULL
-      );
-    `);
-
-    // Create client sessions table
-    await db.exec(`
-      CREATE TABLE IF NOT EXISTS client_sessions (
-        server_url TEXT PRIMARY KEY,
-        correlation_id TEXT NOT NULL,
-        secret_key TEXT NOT NULL,
-        token TEXT
-      );
-    `);
-
-    this.initialized = true;
-    this.sdk.console.log("Session store initialized");
-  }
-
-  /**
    * Load or generate RSA keys
    * Returns true if keys were loaded from persistence, false if newly generated
    */
   async loadOrGenerateRSAKeys(): Promise<boolean> {
-    await this.initialize();
+    const storedKeys = this.sdk.env.getVar(ENV_RSA_KEYS);
 
-    const db = await this.sdk.meta.db();
-    const stmt = await db.prepare("SELECT key_data FROM rsa_keys WHERE id = 1");
-    const row = (await stmt.get()) as { key_data: string } | undefined;
-
-    if (row) {
+    if (storedKeys) {
       try {
-        const serialized: SerializedRSAKeyPair = JSON.parse(row.key_data);
+        const serialized: SerializedRSAKeyPair = JSON.parse(storedKeys);
         importRSAKeyPair(serialized);
-        this.sdk.console.log("RSA keys loaded from persistence");
+        this.sdk.console.log("RSA keys loaded from secure storage");
         return true;
       } catch (error) {
         this.sdk.console.error(`Failed to load RSA keys: ${error}`);
@@ -98,12 +67,12 @@ export class SessionStore {
     // Generate new keys
     initializeRSAKeys();
     await this.saveRSAKeys();
-    this.sdk.console.log("New RSA keys generated and saved");
+    this.sdk.console.log("New RSA keys generated and saved to secure storage");
     return false;
   }
 
   /**
-   * Save current RSA keys to database
+   * Save current RSA keys to secure storage
    */
   async saveRSAKeys(): Promise<void> {
     const serialized = exportRSAKeyPair();
@@ -111,30 +80,67 @@ export class SessionStore {
       return;
     }
 
-    const db = await this.sdk.meta.db();
-    const stmt = await db.prepare(
-      "INSERT OR REPLACE INTO rsa_keys (id, key_data) VALUES (1, ?)",
-    );
-    await stmt.run(JSON.stringify(serialized));
+    try {
+      await this.sdk.env.setVar({
+        name: ENV_RSA_KEYS,
+        value: JSON.stringify(serialized),
+        secret: true, // Encrypted on disk
+        global: true,
+      });
+    } catch (error) {
+      this.sdk.console.error(`Failed to save RSA keys: ${error}`);
+    }
+  }
+
+  /**
+   * Load all client sessions from secure storage
+   */
+  private loadSessionsFromEnv(): ClientSession[] {
+    const storedSessions = this.sdk.env.getVar(ENV_CLIENT_SESSIONS);
+    if (!storedSessions) {
+      return [];
+    }
+
+    try {
+      return JSON.parse(storedSessions) as ClientSession[];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * Save all client sessions to secure storage
+   */
+  private async saveSessionsToEnv(sessions: ClientSession[]): Promise<void> {
+    try {
+      await this.sdk.env.setVar({
+        name: ENV_CLIENT_SESSIONS,
+        value: JSON.stringify(sessions),
+        secret: true, // Encrypted on disk
+        global: true,
+      });
+    } catch (error) {
+      this.sdk.console.error(`Failed to save sessions: ${error}`);
+    }
   }
 
   /**
    * Save a client session
    */
   async saveClientSession(session: ClientSession): Promise<void> {
-    await this.initialize();
+    const sessions = this.loadSessionsFromEnv();
 
-    const db = await this.sdk.meta.db();
-    const stmt = await db.prepare(`
-      INSERT OR REPLACE INTO client_sessions (server_url, correlation_id, secret_key, token)
-      VALUES (?, ?, ?, ?)
-    `);
-    await stmt.run(
-      session.serverUrl,
-      session.correlationId,
-      session.secretKey,
-      session.token || null,
+    // Update existing or add new
+    const existingIndex = sessions.findIndex(
+      (s) => s.serverUrl === session.serverUrl,
     );
+    if (existingIndex >= 0) {
+      sessions[existingIndex] = session;
+    } else {
+      sessions.push(session);
+    }
+
+    await this.saveSessionsToEnv(sessions);
     this.sdk.console.log(`Session saved for ${session.serverUrl}`);
   }
 
@@ -142,47 +148,27 @@ export class SessionStore {
    * Load all client sessions
    */
   async loadClientSessions(): Promise<ClientSession[]> {
-    await this.initialize();
-
-    const db = await this.sdk.meta.db();
-    const stmt = await db.prepare("SELECT * FROM client_sessions");
-    const rows = (await stmt.all()) as Array<{
-      server_url: string;
-      correlation_id: string;
-      secret_key: string;
-      token: string | null;
-    }>;
-
-    return rows.map((row) => ({
-      serverUrl: row.server_url,
-      correlationId: row.correlation_id,
-      secretKey: row.secret_key,
-      token: row.token || undefined,
-    }));
+    return this.loadSessionsFromEnv();
   }
 
   /**
    * Delete a client session
    */
   async deleteClientSession(serverUrl: string): Promise<void> {
-    await this.initialize();
+    const sessions = this.loadSessionsFromEnv();
+    const filtered = sessions.filter((s) => s.serverUrl !== serverUrl);
 
-    const db = await this.sdk.meta.db();
-    const stmt = await db.prepare(
-      "DELETE FROM client_sessions WHERE server_url = ?",
-    );
-    await stmt.run(serverUrl);
-    this.sdk.console.log(`Session deleted for ${serverUrl}`);
+    if (filtered.length !== sessions.length) {
+      await this.saveSessionsToEnv(filtered);
+      this.sdk.console.log(`Session deleted for ${serverUrl}`);
+    }
   }
 
   /**
    * Delete all client sessions
    */
   async clearAllSessions(): Promise<void> {
-    await this.initialize();
-
-    const db = await this.sdk.meta.db();
-    await db.exec("DELETE FROM client_sessions");
+    await this.saveSessionsToEnv([]);
     this.sdk.console.log("All sessions cleared");
   }
 }
