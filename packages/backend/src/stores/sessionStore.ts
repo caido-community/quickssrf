@@ -82,7 +82,7 @@ export class SessionStore {
 
     const db = await this.sdk.meta.db();
     const stmt = await db.prepare("SELECT key_data FROM rsa_keys WHERE id = 1");
-    const row = (await stmt.get()) as { key_data: string } | undefined;
+    const row = await stmt.get();
 
     if (row) {
       try {
@@ -146,12 +146,7 @@ export class SessionStore {
 
     const db = await this.sdk.meta.db();
     const stmt = await db.prepare("SELECT * FROM client_sessions");
-    const rows = (await stmt.all()) as Array<{
-      server_url: string;
-      correlation_id: string;
-      secret_key: string;
-      token: string | null;
-    }>;
+    const rows = await stmt.all();
 
     return rows.map((row) => ({
       serverUrl: row.server_url,

@@ -218,7 +218,8 @@ export const createInteractshClient = (sdk: SDK) => {
         }
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       // Propagate SESSION_EXPIRED error directly
       if (errorMessage === "SESSION_EXPIRED") {
         throw error;

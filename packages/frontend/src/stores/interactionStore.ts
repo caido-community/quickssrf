@@ -441,11 +441,6 @@ export const useInteractionStore = defineStore("interaction", () => {
     selectedRows.value = [];
   }
 
-  // Clear filter
-  function clearFilter() {
-    filterQuery.value = "";
-  }
-
   // Set row color
   function setRowColor(fullId: string, color: string | undefined) {
     if (color === undefined) {
@@ -463,7 +458,6 @@ export const useInteractionStore = defineStore("interaction", () => {
   // Load persisted data from backend and restore service state
   async function loadPersistedData() {
     const uiStore = useUIStore();
-    const settings = useSettingsStore();
 
     // Check if backend service is already started
     const { data: status, error: statusError } = await tryCatch(
@@ -690,7 +684,6 @@ export const useInteractionStore = defineStore("interaction", () => {
     generateMultipleUrls,
     manualPoll,
     clearData,
-    clearFilter,
     deleteInteraction,
     deleteSelected,
     resetClientService,

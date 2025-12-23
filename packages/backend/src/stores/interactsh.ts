@@ -20,6 +20,7 @@ import {
   createInteractshClient,
   type InteractshClient,
 } from "../services/interactsh";
+
 import { SessionStore } from "./sessionStore";
 
 export interface ActiveUrl {
@@ -226,7 +227,10 @@ export class InteractshStore {
           },
         );
 
-        this.clients.set(session.serverUrl, { client, serverUrl: session.serverUrl });
+        this.clients.set(session.serverUrl, {
+          client,
+          serverUrl: session.serverUrl,
+        });
         this.sdk.console.log(`Session restored for ${session.serverUrl}`);
       } catch (error) {
         this.sdk.console.error(
