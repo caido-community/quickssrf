@@ -114,10 +114,16 @@ export const createInteractshClient = (sdk: SDK) => {
     method?: string;
     body?: string;
     headers?: Record<string, string>;
+    timeout?: number;
   }
 
   /**
-   * Make an HTTP request using fetch
+   * Default timeout for HTTP requests (30 seconds)
+   */
+  const DEFAULT_TIMEOUT = 30000;
+
+  /**
+   * Make an HTTP request using fetch with timeout
    */
   const httpRequest = async (
     url: string,
@@ -132,11 +138,21 @@ export const createInteractshClient = (sdk: SDK) => {
       headers["Authorization"] = token;
     }
 
-    return fetch(url, {
-      method: options.method,
-      body: options.body ? new Blob([options.body]) : undefined,
-      headers,
-    });
+    const timeout = options.timeout ?? DEFAULT_TIMEOUT;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(url, {
+        method: options.method,
+        body: options.body ? new Blob([options.body]) : undefined,
+        headers,
+        signal: controller.signal,
+      });
+      return response;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   };
 
   /**
