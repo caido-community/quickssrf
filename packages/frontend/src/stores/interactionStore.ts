@@ -113,12 +113,42 @@ export const useInteractionStore = defineStore("interaction", () => {
     }
   }
 
+  // Maximum filter value length to prevent ReDoS
+  const MAX_FILTER_LENGTH = 256;
+
+  // Escape regex special characters except % and _ (for LIKE patterns)
+  function escapeRegexForLike(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  // Safely test regex with complexity limits
+  function safeRegexTest(
+    pattern: string,
+    value: string,
+    flags = "i",
+  ): boolean | null {
+    // Reject overly complex patterns
+    if (pattern.length > MAX_FILTER_LENGTH) {
+      return null;
+    }
+    try {
+      return new RegExp(pattern, flags).test(value);
+    } catch {
+      return null;
+    }
+  }
+
   // Apply operator to check if value matches
   function applyOperator(
     fieldValue: string,
     operator: string,
     filterValue: string,
   ): boolean {
+    // Limit filter value length to prevent ReDoS
+    if (filterValue.length > MAX_FILTER_LENGTH) {
+      return false;
+    }
+
     const lowerFilterValue = filterValue.toLowerCase();
 
     switch (operator) {
@@ -131,30 +161,26 @@ export const useInteractionStore = defineStore("interaction", () => {
       case "ncont":
         return !fieldValue.includes(lowerFilterValue);
       case "like": {
-        // Convert SQL LIKE pattern to regex: % -> .*, _ -> .
-        const likePattern = lowerFilterValue
-          .replace(/%/g, ".*")
-          .replace(/_/g, ".");
-        return new RegExp(`^${likePattern}$`, "i").test(fieldValue);
+        // Escape regex chars, then convert SQL LIKE wildcards: % -> .*, _ -> .
+        const escaped = escapeRegexForLike(lowerFilterValue);
+        const likePattern = escaped.replace(/%/g, ".*").replace(/_/g, ".");
+        const result = safeRegexTest(`^${likePattern}$`, fieldValue);
+        return result === true;
       }
       case "nlike": {
-        const nlikePattern = lowerFilterValue
-          .replace(/%/g, ".*")
-          .replace(/_/g, ".");
-        return !new RegExp(`^${nlikePattern}$`, "i").test(fieldValue);
+        const escaped = escapeRegexForLike(lowerFilterValue);
+        const nlikePattern = escaped.replace(/%/g, ".*").replace(/_/g, ".");
+        const result = safeRegexTest(`^${nlikePattern}$`, fieldValue);
+        return result === false || result === null;
       }
-      case "regex":
-        try {
-          return new RegExp(filterValue, "i").test(fieldValue);
-        } catch {
-          return false;
-        }
-      case "nregex":
-        try {
-          return !new RegExp(filterValue, "i").test(fieldValue);
-        } catch {
-          return true;
-        }
+      case "regex": {
+        const result = safeRegexTest(filterValue, fieldValue);
+        return result === true;
+      }
+      case "nregex": {
+        const result = safeRegexTest(filterValue, fieldValue);
+        return result === false || result === null;
+      }
       default:
         // Default to contains
         return fieldValue.includes(lowerFilterValue);

@@ -57,17 +57,16 @@ interface InteractionData {
 
 /**
  * Simple URL parser since URL is not available in Caido backend
+ * Enforces HTTPS for security - HTTP URLs are automatically upgraded
  */
 function parseUrl(urlString: string): { host: string; origin: string } {
-  // Extract protocol and host from URL string
-  const protocolMatch = urlString.match(/^(https?:\/\/)/);
-  const protocol = protocolMatch ? protocolMatch[1] : "https://";
+  // Remove any existing protocol and enforce HTTPS
   const withoutProtocol = urlString.replace(/^https?:\/\//, "");
   const hostMatch = withoutProtocol.match(/^([^/]+)/);
   const host = hostMatch ? hostMatch[1]! : withoutProtocol;
   return {
     host,
-    origin: `${protocol}${host}`,
+    origin: `https://${host}`, // Always use HTTPS
   };
 }
 
