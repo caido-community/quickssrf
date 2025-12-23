@@ -126,15 +126,15 @@ export const useInteractionStore = defineStore("interaction", () => {
     pattern: string,
     value: string,
     flags = "i",
-  ): boolean | null {
+  ): boolean | undefined {
     // Reject overly complex patterns
     if (pattern.length > MAX_FILTER_LENGTH) {
-      return null;
+      return undefined;
     }
     try {
       return new RegExp(pattern, flags).test(value);
     } catch {
-      return null;
+      return undefined;
     }
   }
 
@@ -171,7 +171,7 @@ export const useInteractionStore = defineStore("interaction", () => {
         const escaped = escapeRegexForLike(lowerFilterValue);
         const nlikePattern = escaped.replace(/%/g, ".*").replace(/_/g, ".");
         const result = safeRegexTest(`^${nlikePattern}$`, fieldValue);
-        return result === false || result === null;
+        return result === false || result === undefined;
       }
       case "regex": {
         const result = safeRegexTest(filterValue, fieldValue);
@@ -179,7 +179,7 @@ export const useInteractionStore = defineStore("interaction", () => {
       }
       case "nregex": {
         const result = safeRegexTest(filterValue, fieldValue);
-        return result === false || result === null;
+        return result === false || result === undefined;
       }
       default:
         // Default to contains

@@ -147,7 +147,7 @@ export class SessionStore {
   /**
    * Load all client sessions
    */
-  async loadClientSessions(): Promise<ClientSession[]> {
+  loadClientSessions(): ClientSession[] {
     return this.loadSessionsFromEnv();
   }
 

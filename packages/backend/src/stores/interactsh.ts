@@ -199,7 +199,7 @@ export class InteractshStore {
    * Restore client sessions from persistence
    */
   private async restoreSessions(): Promise<void> {
-    const sessions = await this.sessionStore.loadClientSessions();
+    const sessions = this.sessionStore.loadClientSessions();
     if (sessions.length === 0) {
       this.sdk.console.log("No sessions to restore");
       return;
