@@ -19,7 +19,6 @@ export const useInteractionStore = defineStore("interaction", () => {
   const filterEnabled = ref(true);
   const selectedRows = ref<Interaction[]>([]);
   const rowColors = ref<Record<string, string>>({});
-  let pollingIntervalId: ReturnType<typeof setInterval> | undefined;
 
   // Flag to skip next data change event (when we made the change ourselves)
   let skipNextDataChangeEvent = false;
@@ -280,23 +279,6 @@ export const useInteractionStore = defineStore("interaction", () => {
     }
   }
 
-  function startPolling(intervalMs: number) {
-    if (pollingIntervalId) {
-      clearInterval(pollingIntervalId);
-    }
-
-    pollingIntervalId = setInterval(() => {
-      fetchNewInteractions();
-    }, intervalMs);
-  }
-
-  function stopPolling() {
-    if (pollingIntervalId) {
-      clearInterval(pollingIntervalId);
-      pollingIntervalId = undefined;
-    }
-  }
-
   async function initializeService() {
     if (isStarted.value) return true;
 
@@ -321,7 +303,7 @@ export const useInteractionStore = defineStore("interaction", () => {
     }
 
     isStarted.value = true;
-    startPolling(settings.pollingInterval);
+    // No need for frontend polling - backend emits events when new interactions arrive
 
     // If random mode is enabled, pre-initialize all server clients in background
     if (settings.serverMode === "random") {
@@ -344,8 +326,6 @@ export const useInteractionStore = defineStore("interaction", () => {
   }
 
   async function resetClientService() {
-    stopPolling();
-
     if (isStarted.value) {
       const { error } = await tryCatch(sdk.backend.stopInteractsh());
       if (error) {
@@ -408,8 +388,8 @@ export const useInteractionStore = defineStore("interaction", () => {
     uiStore.setBtnCount(0);
     sidebarItem.setCount(uiStore.btnCount);
 
-    // Clear all data on backend (interactions + URLs + persisted data)
-    sdk.backend.clearAllData();
+    // Clear only interactions on backend (keep URLs intact)
+    sdk.backend.clearInteractions();
 
     if (resetService) {
       resetClientService();
@@ -493,7 +473,7 @@ export const useInteractionStore = defineStore("interaction", () => {
     if (!statusError && status?.isStarted) {
       // Backend is already running, sync frontend state
       isStarted.value = true;
-      startPolling(settings.pollingInterval);
+      // No need for frontend polling - backend emits events when new interactions arrive
       console.log("Backend service already running, synced frontend state");
     }
 
@@ -664,6 +644,11 @@ export const useInteractionStore = defineStore("interaction", () => {
     }
   }
 
+  // Find interaction by uniqueId
+  function findInteractionById(uniqueId: string): Interaction | undefined {
+    return data.value.find((item) => item.uniqueId === uniqueId);
+  }
+
   // Generate multiple URLs
   async function generateMultipleUrls(count: number): Promise<string[]> {
     const initialized = await initializeService();
@@ -720,5 +705,6 @@ export const useInteractionStore = defineStore("interaction", () => {
     setFilterQuery,
     loadFilter,
     setInteractionTag,
+    findInteractionById,
   };
 });

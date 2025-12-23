@@ -12,12 +12,15 @@ import {
   emitDataChanged,
   emitFilterChanged,
   emitFilterEnabledChanged,
+  emitRowSelected,
   emitUrlGenerated,
+  emitUrlsChanged,
 } from "../index";
 import {
   createInteractshClient,
   type InteractshClient,
 } from "../services/interactsh";
+import { SessionStore } from "./sessionStore";
 
 export interface ActiveUrl {
   url: string;
@@ -48,17 +51,36 @@ export class InteractshStore {
   private activeUrls: ActiveUrl[] = [];
   private filter = "";
   private filterEnabled = true;
+  private selectedRowId: string | undefined;
   private sdk: SDK;
   private isStarted = false;
   private interactionCounter = 0;
   private currentOptions: InteractshStartOptions | undefined;
   private readonly dataPath: string;
+  private sessionStore: SessionStore;
 
   private constructor(sdk: SDK) {
     this.sdk = sdk;
     this.dataPath = path.join(this.sdk.meta.path(), "data.json");
+    this.sessionStore = SessionStore.get(sdk);
     this.loadPersistedData();
   }
+
+  /**
+   * Handle session expiration for a client
+   * Called when the interactsh server returns 400 (session no longer valid)
+   */
+  private handleSessionExpired = async (serverUrl: string): Promise<void> => {
+    this.sdk.console.log(`Cleaning up expired session for ${serverUrl}`);
+
+    // Remove client from map
+    this.clients.delete(serverUrl);
+
+    // Remove from SQLite persistence
+    await this.sessionStore.deleteClientSession(serverUrl);
+
+    this.sdk.console.log(`Expired session cleaned up for ${serverUrl}`);
+  };
 
   static get(sdk: SDK): InteractshStore {
     if (!InteractshStore._instance) {
@@ -151,17 +173,102 @@ export class InteractshStore {
     };
   }
 
-  start(options: InteractshStartOptions): boolean {
+  async start(options: InteractshStartOptions): Promise<boolean> {
     if (this.isStarted) {
       this.sdk.console.log("Interactsh store already started");
       return true;
     }
 
     this.currentOptions = options;
-    this.interactions = [];
     this.isStarted = true;
+
+    // Load or generate RSA keys
+    const keysLoaded = await this.sessionStore.loadOrGenerateRSAKeys();
+
+    // If we have persisted keys, try to restore sessions
+    if (keysLoaded) {
+      await this.restoreSessions();
+    }
+
     this.sdk.console.log("Interactsh store initialized");
     return true;
+  }
+
+  /**
+   * Restore client sessions from persistence
+   */
+  private async restoreSessions(): Promise<void> {
+    const sessions = await this.sessionStore.loadClientSessions();
+    if (sessions.length === 0) {
+      this.sdk.console.log("No sessions to restore");
+      return;
+    }
+
+    this.sdk.console.log(`Restoring ${sessions.length} session(s)...`);
+
+    for (const session of sessions) {
+      try {
+        const client = createInteractshClient(this.sdk);
+        await client.start(
+          {
+            serverURL: session.serverUrl,
+            keepAliveInterval: this.currentOptions?.pollingInterval,
+            sessionInfo: {
+              serverURL: session.serverUrl,
+              correlationID: session.correlationId,
+              secretKey: session.secretKey,
+              token: session.token || "",
+            },
+            onSessionExpired: this.handleSessionExpired,
+          },
+          (interaction: Record<string, unknown>) => {
+            this.handleInteraction(interaction, session.serverUrl);
+          },
+        );
+
+        this.clients.set(session.serverUrl, { client, serverUrl: session.serverUrl });
+        this.sdk.console.log(`Session restored for ${session.serverUrl}`);
+      } catch (error) {
+        this.sdk.console.error(
+          `Failed to restore session for ${session.serverUrl}: ${error}`,
+        );
+        // Remove failed session from persistence
+        await this.sessionStore.deleteClientSession(session.serverUrl);
+      }
+    }
+  }
+
+  /**
+   * Handle incoming interaction from any client
+   */
+  private handleInteraction(
+    interaction: Record<string, unknown>,
+    serverUrl: string,
+  ): void {
+    const rawFullId = interaction["full-id"];
+    const fullId = typeof rawFullId === "string" ? rawFullId : "";
+    const matchingUrl = this.activeUrls.find(
+      (u) => fullId.startsWith(u.uniqueId) || u.uniqueId === fullId,
+    );
+
+    if (matchingUrl && matchingUrl.isActive) {
+      const parsed = this.parseInteraction(
+        interaction,
+        matchingUrl.tag,
+        matchingUrl.serverUrl,
+      );
+      this.interactions.push(parsed);
+      this.savePersistedData(false);
+      // Emit event to notify frontend of new interaction
+      emitDataChanged();
+      this.sdk.console.log(
+        `New interaction received: ${parsed.protocol}${parsed.tag ? ` [${parsed.tag}]` : ""}`,
+      );
+    } else if (matchingUrl && !matchingUrl.isActive) {
+      this.sdk.console.log(`Interaction ignored (URL disabled): ${fullId}`);
+    } else {
+      this.sdk.console.log(`Interaction ignored (URL not tracked): ${fullId}`);
+    }
   }
 
   private async getOrCreateClient(
@@ -184,41 +291,21 @@ export class InteractshStore {
         keepAliveInterval: this.currentOptions.pollingInterval,
         correlationIdLength: this.currentOptions.correlationIdLength,
         correlationIdNonceLength: this.currentOptions.correlationIdNonceLength,
+        onSessionExpired: this.handleSessionExpired,
       },
       (interaction: Record<string, unknown>) => {
-        // Check if this interaction's URL is tracked and active
-        const rawFullId = interaction["full-id"];
-        const fullId = typeof rawFullId === "string" ? rawFullId : "";
-        const matchingUrl = this.activeUrls.find(
-          (u) => fullId.startsWith(u.uniqueId) || u.uniqueId === fullId,
-        );
-
-        // Only add interaction if URL is found AND is active
-        if (matchingUrl && matchingUrl.isActive) {
-          // Pass the tag and serverUrl from the matching URL to the interaction
-          const parsed = this.parseInteraction(
-            interaction,
-            matchingUrl.tag,
-            matchingUrl.serverUrl,
-          );
-          this.interactions.push(parsed);
-          // Don't emit event for new interactions - polling handles this
-          this.savePersistedData(false);
-          this.sdk.console.log(
-            `New interaction received: ${parsed.protocol}${parsed.tag ? ` [${parsed.tag}]` : ""}`,
-          );
-        } else if (matchingUrl && !matchingUrl.isActive) {
-          this.sdk.console.log(`Interaction ignored (URL disabled): ${fullId}`);
-        } else {
-          this.sdk.console.log(
-            `Interaction ignored (URL not tracked): ${fullId}`,
-          );
-        }
+        this.handleInteraction(interaction, serverUrl);
       },
     );
 
     this.clients.set(serverUrl, { client, serverUrl });
     this.sdk.console.log(`Created client for server: ${serverUrl}`);
+
+    // Save session credentials for persistence
+    const credentials = client.getSessionCredentials();
+    if (credentials) {
+      await this.sessionStore.saveClientSession(credentials);
+    }
     return client;
   }
 
@@ -292,14 +379,34 @@ export class InteractshStore {
     }
 
     const countBefore = this.interactions.length;
+    const expiredServers: string[] = [];
 
     // Poll all clients
     for (const [serverUrl, { client }] of this.clients) {
       try {
         await client.poll();
       } catch (error) {
-        this.sdk.console.error(`Failed to poll ${serverUrl}: ${error}`);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        // SESSION_EXPIRED means server rejected, "Client is not polling" means client already stopped
+        if (
+          errorMessage.includes("SESSION_EXPIRED") ||
+          errorMessage.includes("Client is not polling")
+        ) {
+          this.sdk.console.log(
+            `Session expired or client stopped for ${serverUrl} - removing client`,
+          );
+          expiredServers.push(serverUrl);
+        } else {
+          this.sdk.console.error(`Failed to poll ${serverUrl}: ${error}`);
+        }
       }
+    }
+
+    // Remove expired clients and their persisted sessions
+    for (const serverUrl of expiredServers) {
+      this.clients.delete(serverUrl);
+      await this.sessionStore.deleteClientSession(serverUrl);
     }
 
     // If notifyOthers is true and we got new interactions, emit event
@@ -356,6 +463,7 @@ export class InteractshStore {
       this.sdk.console.log(
         `URL ${uniqueId} set to ${isActive ? "active" : "inactive"}`,
       );
+      emitUrlsChanged();
       return true;
     }
     return false;
@@ -367,6 +475,7 @@ export class InteractshStore {
       this.activeUrls.splice(index, 1);
       this.savePersistedData();
       this.sdk.console.log(`URL ${uniqueId} removed from tracking`);
+      emitUrlsChanged();
       return true;
     }
     return false;
@@ -376,6 +485,7 @@ export class InteractshStore {
     this.activeUrls = [];
     this.savePersistedData();
     this.sdk.console.log("All tracked URLs cleared");
+    emitUrlsChanged();
   }
 
   // Clear all persisted data (interactions, URLs, counter)
@@ -452,5 +562,17 @@ export class InteractshStore {
       return true;
     }
     return false;
+  }
+
+  // Selected row management (for cross-tab sync)
+  setSelectedRowId(uniqueId: string | undefined): void {
+    if (this.selectedRowId !== uniqueId) {
+      this.selectedRowId = uniqueId;
+      emitRowSelected(uniqueId);
+    }
+  }
+
+  getSelectedRowId(): string | undefined {
+    return this.selectedRowId;
   }
 }

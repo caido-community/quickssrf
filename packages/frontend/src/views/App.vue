@@ -41,6 +41,7 @@ let dataChangeSubscription: { stop: () => void } | undefined;
 let urlGeneratedSubscription: { stop: () => void } | undefined;
 let filterChangedSubscription: { stop: () => void } | undefined;
 let filterEnabledChangedSubscription: { stop: () => void } | undefined;
+let rowSelectedSubscription: { stop: () => void } | undefined;
 
 onMounted(async () => {
   initializeEditors();
@@ -54,6 +55,9 @@ onMounted(async () => {
   filterChangedSubscription = interactionStore.subscribeToFilterChanged();
   filterEnabledChangedSubscription =
     interactionStore.subscribeToFilterEnabledChanged();
+  rowSelectedSubscription = uiStore.subscribeToRowSelected(
+    interactionStore.findInteractionById,
+  );
 });
 
 onUnmounted(() => {
@@ -69,6 +73,9 @@ onUnmounted(() => {
   }
   if (filterEnabledChangedSubscription) {
     filterEnabledChangedSubscription.stop();
+  }
+  if (rowSelectedSubscription) {
+    rowSelectedSubscription.stop();
   }
 });
 </script>

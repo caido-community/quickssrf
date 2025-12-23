@@ -8,10 +8,10 @@ import type {
 
 import { InteractshStore } from "../stores/interactsh";
 
-export const startInteractsh = (
+export const startInteractsh = async (
   sdk: SDK,
   options: InteractshStartOptions,
-): boolean => {
+): Promise<boolean> => {
   const store = InteractshStore.get(sdk);
   return store.start(options);
 };
@@ -143,4 +143,17 @@ export const setInteractionTag = (
 ): boolean => {
   const store = InteractshStore.get(sdk);
   return store.setInteractionTag(uniqueId, tag);
+};
+
+export const setSelectedRowId = (
+  sdk: SDK,
+  uniqueId: string | undefined,
+): void => {
+  const store = InteractshStore.get(sdk);
+  store.setSelectedRowId(uniqueId);
+};
+
+export const getSelectedRowId = (sdk: SDK): string | undefined => {
+  const store = InteractshStore.get(sdk);
+  return store.getSelectedRowId();
 };

@@ -127,7 +127,7 @@ const contextMenuItems = ref([
         interactionStore.deleteInteraction(contextMenuRow.value.uniqueId);
         if (uiStore.selectedRow?.uniqueId === contextMenuRow.value.uniqueId) {
           editorStore.clearEditors();
-          uiStore.selectedRow = undefined;
+          uiStore.setSelectedRow(undefined);
         }
         contextMenuRow.value = undefined;
       }
@@ -166,7 +166,7 @@ function deleteRow(uniqueId: string) {
   interactionStore.deleteInteraction(uniqueId);
   if (uiStore.selectedRow?.uniqueId === uniqueId) {
     editorStore.clearEditors();
-    uiStore.selectedRow = undefined;
+    uiStore.setSelectedRow(undefined);
   }
 }
 
@@ -225,7 +225,7 @@ function onRowClick(event: { originalEvent: Event; data: Interaction }) {
   ) {
     return;
   }
-  uiStore.selectedRow = event.data;
+  uiStore.setSelectedRow(event.data);
 }
 
 // Get sorted data for keyboard navigation
@@ -280,7 +280,7 @@ function handleKeyDown(event: KeyboardEvent) {
   }
 
   if (newIndex !== currentIndex && data[newIndex]) {
-    uiStore.selectedRow = data[newIndex];
+    uiStore.setSelectedRow(data[newIndex]);
     scrollToSelectedRow(newIndex);
   }
 }
