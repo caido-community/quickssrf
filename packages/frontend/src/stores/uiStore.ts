@@ -5,6 +5,9 @@ import { ref } from "vue";
 import { useSDK } from "@/plugins/sdk";
 import type { Interaction } from "@/types";
 
+// Skip flag for cross-tab sync
+let skipNextRowSelectedEvent = false;
+
 export const useUIStore = defineStore("ui", () => {
   const sdk = useSDK();
   const { copy } = useClipboard();
@@ -51,6 +54,40 @@ export const useUIStore = defineStore("ui", () => {
 
   function setSelectedRow(row: Interaction | undefined) {
     selectedRow.value = row;
+    // Sync to backend for cross-tab sync
+    skipNextRowSelectedEvent = true;
+    sdk.backend.setSelectedRowId(row?.uniqueId);
+  }
+
+  // Called when receiving event from another tab
+  function setSelectedRowFromId(
+    uniqueId: string | undefined,
+    findInteraction: (id: string) => Interaction | undefined,
+  ) {
+    if (uniqueId === undefined) {
+      selectedRow.value = undefined;
+    } else {
+      const interaction = findInteraction(uniqueId);
+      if (interaction) {
+        selectedRow.value = interaction;
+      }
+    }
+  }
+
+  // Subscribe to row selection events from other tabs
+  function subscribeToRowSelected(
+    findInteraction: (id: string) => Interaction | undefined,
+  ) {
+    return sdk.backend.onEvent(
+      "onRowSelected",
+      (uniqueId: string | undefined) => {
+        if (skipNextRowSelectedEvent) {
+          skipNextRowSelectedEvent = false;
+          return;
+        }
+        setSelectedRowFromId(uniqueId, findInteraction);
+      },
+    );
   }
 
   return {
@@ -66,6 +103,7 @@ export const useUIStore = defineStore("ui", () => {
     setGeneratingUrl,
     setPolling,
     setSelectedRow,
+    subscribeToRowSelected,
     setBtnCount,
     clearUI,
   };

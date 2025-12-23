@@ -23,11 +23,12 @@ enum State {
  */
 interface Options {
   serverURL: string;
-  token: string;
+  token?: string;
   correlationIdLength?: number;
   correlationIdNonceLength?: number;
   sessionInfo?: SessionInfo;
   keepAliveInterval?: number;
+  onSessionExpired?: (serverUrl: string) => void;
 }
 
 /**
@@ -56,17 +57,16 @@ interface InteractionData {
 
 /**
  * Simple URL parser since URL is not available in Caido backend
+ * Enforces HTTPS for security - HTTP URLs are automatically upgraded
  */
 function parseUrl(urlString: string): { host: string; origin: string } {
-  // Extract protocol and host from URL string
-  const protocolMatch = urlString.match(/^(https?:\/\/)/);
-  const protocol = protocolMatch ? protocolMatch[1] : "https://";
+  // Remove any existing protocol and enforce HTTPS
   const withoutProtocol = urlString.replace(/^https?:\/\//, "");
   const hostMatch = withoutProtocol.match(/^([^/]+)/);
   const host = hostMatch ? hostMatch[1]! : withoutProtocol;
   return {
     host,
-    origin: `${protocol}${host}`,
+    origin: `https://${host}`, // Always use HTTPS
   };
 }
 
@@ -92,6 +92,7 @@ export const createInteractshClient = (sdk: SDK) => {
   let pollingInterval = 5000;
   let correlationIdNonceLength = 13;
   let interactionCallback: ((interaction: InteractionData) => void) | undefined;
+  let sessionExpiredCallback: ((serverUrl: string) => void) | undefined;
 
   const defaultInteractionHandler = () => {};
 
@@ -113,10 +114,16 @@ export const createInteractshClient = (sdk: SDK) => {
     method?: string;
     body?: string;
     headers?: Record<string, string>;
+    timeout?: number;
   }
 
   /**
-   * Make an HTTP request using fetch
+   * Default timeout for HTTP requests (30 seconds)
+   */
+  const DEFAULT_TIMEOUT = 30000;
+
+  /**
+   * Make an HTTP request using fetch with timeout
    */
   const httpRequest = async (
     url: string,
@@ -131,11 +138,21 @@ export const createInteractshClient = (sdk: SDK) => {
       headers["Authorization"] = token;
     }
 
-    return fetch(url, {
-      method: options.method,
-      body: options.body ? new Blob([options.body]) : undefined,
-      headers,
-    });
+    const timeout = options.timeout ?? DEFAULT_TIMEOUT;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(url, {
+        method: options.method,
+        body: options.body ? new Blob([options.body]) : undefined,
+        headers,
+        signal: controller.signal,
+      });
+      return response;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   };
 
   /**
@@ -191,6 +208,10 @@ export const createInteractshClient = (sdk: SDK) => {
         if (response.status === 401) {
           throw new Error("Couldn't authenticate to the server");
         }
+        if (response.status === 400) {
+          // Session expired - credentials no longer valid on server
+          throw new Error("SESSION_EXPIRED");
+        }
         const errorText = await response.text();
         throw new Error(`Could not poll interactions: ${errorText}`);
       }
@@ -212,6 +233,12 @@ export const createInteractshClient = (sdk: SDK) => {
         }
       }
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      // Propagate SESSION_EXPIRED error directly
+      if (errorMessage === "SESSION_EXPIRED") {
+        throw error;
+      }
       sdk.console.error(`Error polling interactions: ${error}`);
       throw new Error("Error polling interactions");
     }
@@ -226,17 +253,27 @@ export const createInteractshClient = (sdk: SDK) => {
   ): Promise<void> => {
     ensureKeysInitialized();
 
-    token = options.token;
-    correlationID =
-      options.sessionInfo?.correlationID ||
-      generateRandomString(options.correlationIdLength || 20);
-    secretKey =
-      options.sessionInfo?.secretKey ||
-      generateRandomString(options.correlationIdNonceLength || 13);
+    const isResumingSession = !!options.sessionInfo;
 
-    serverURLString = options.serverURL;
-    const parsed = parseUrl(options.serverURL);
-    serverHost = parsed.host;
+    if (isResumingSession) {
+      // Resuming existing session - use provided credentials
+      const { sessionInfo } = options;
+      correlationID = sessionInfo!.correlationID;
+      secretKey = sessionInfo!.secretKey;
+      token = sessionInfo!.token;
+      serverURLString = sessionInfo!.serverURL;
+      const parsed = parseUrl(sessionInfo!.serverURL);
+      serverHost = parsed.host;
+      sdk.console.log(`Resuming session for ${serverURLString}`);
+    } else {
+      // New session - generate credentials
+      token = options.token;
+      correlationID = generateRandomString(options.correlationIdLength || 20);
+      secretKey = generateRandomString(options.correlationIdNonceLength || 13);
+      serverURLString = options.serverURL;
+      const parsed = parseUrl(options.serverURL);
+      serverHost = parsed.host;
+    }
 
     correlationIdNonceLength = options.correlationIdNonceLength || 13;
 
@@ -244,21 +281,19 @@ export const createInteractshClient = (sdk: SDK) => {
       interactionCallback = interactionCallbackParam;
     }
 
-    if (options.sessionInfo) {
-      const { token: sessionToken, serverURL: sessionServerURL } =
-        options.sessionInfo;
-      token = sessionToken;
-      serverURLString = sessionServerURL;
-      const parsedSession = parseUrl(sessionServerURL);
-      serverHost = parsedSession.host;
+    if (options.onSessionExpired) {
+      sessionExpiredCallback = options.onSessionExpired;
     }
 
-    const publicKey = encodePublicKey();
-    await performRegistration({
-      "public-key": publicKey,
-      "secret-key": secretKey,
-      "correlation-id": correlationID,
-    });
+    // Only register with server if this is a new session
+    if (!isResumingSession) {
+      const publicKey = encodePublicKey();
+      await performRegistration({
+        "public-key": publicKey,
+        "secret-key": secretKey,
+        "correlation-id": correlationID,
+      });
+    }
 
     if (options.keepAliveInterval) {
       pollingInterval = options.keepAliveInterval;
@@ -284,6 +319,19 @@ export const createInteractshClient = (sdk: SDK) => {
         try {
           await getInteractions(callback);
         } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          if (errorMessage === "SESSION_EXPIRED") {
+            sdk.console.log(
+              `Session expired for server ${serverURLString} - stopping polling`,
+            );
+            quitPollingFlag = true;
+            state = State.Idle;
+            // Notify the store to clean up this session
+            if (sessionExpiredCallback && serverURLString) {
+              sessionExpiredCallback(serverURLString);
+            }
+            break;
+          }
           sdk.console.error(`Polling error: ${err}`);
         }
         await new Promise((resolve) => setTimeout(resolve, pollingInterval));
@@ -426,9 +474,32 @@ export const createInteractshClient = (sdk: SDK) => {
    */
   const getCorrelationID = (): string | undefined => correlationID;
 
+  /**
+   * Get session credentials for persistence
+   */
+  const getSessionCredentials = ():
+    | {
+        serverUrl: string;
+        correlationId: string;
+        secretKey: string;
+        token?: string;
+      }
+    | undefined => {
+    if (!serverURLString || !correlationID || !secretKey) {
+      return undefined;
+    }
+    return {
+      serverUrl: serverURLString,
+      correlationId: correlationID,
+      secretKey: secretKey,
+      token: token,
+    };
+  };
+
   return {
     getState,
     getCorrelationID,
+    getSessionCredentials,
     start,
     generateUrl,
     poll,

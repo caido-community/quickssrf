@@ -84,7 +84,7 @@ function getFilterValueForField(
   }
 }
 
-function addFilterFromContext() {
+function applyFilterFromContext(operator: "eq" | "ne") {
   if (!contextMenuRow.value || !contextMenuField.value) return;
 
   const filterField = fieldToFilterMap[contextMenuField.value];
@@ -95,7 +95,7 @@ function addFilterFromContext() {
 
   if (!filterField || !value) return;
 
-  const filterExpr = `${filterField}.eq:"${value}"`;
+  const filterExpr = `${filterField}.${operator}:"${value}"`;
   const currentFilter = interactionStore.filterQuery.trim();
 
   if (currentFilter) {
@@ -107,9 +107,14 @@ function addFilterFromContext() {
 
 const contextMenuItems = ref([
   {
-    label: "Add Filter",
+    label: "Include Filter",
     icon: "fas fa-filter",
-    command: addFilterFromContext,
+    command: () => applyFilterFromContext("eq"),
+  },
+  {
+    label: "Exclude Filter",
+    icon: "fas fa-filter-circle-xmark",
+    command: () => applyFilterFromContext("ne"),
   },
   {
     label: "Set Color",
@@ -127,7 +132,7 @@ const contextMenuItems = ref([
         interactionStore.deleteInteraction(contextMenuRow.value.uniqueId);
         if (uiStore.selectedRow?.uniqueId === contextMenuRow.value.uniqueId) {
           editorStore.clearEditors();
-          uiStore.selectedRow = undefined;
+          uiStore.setSelectedRow(undefined);
         }
         contextMenuRow.value = undefined;
       }
@@ -166,7 +171,7 @@ function deleteRow(uniqueId: string) {
   interactionStore.deleteInteraction(uniqueId);
   if (uiStore.selectedRow?.uniqueId === uniqueId) {
     editorStore.clearEditors();
-    uiStore.selectedRow = undefined;
+    uiStore.setSelectedRow(undefined);
   }
 }
 
@@ -225,7 +230,7 @@ function onRowClick(event: { originalEvent: Event; data: Interaction }) {
   ) {
     return;
   }
-  uiStore.selectedRow = event.data;
+  uiStore.setSelectedRow(event.data);
 }
 
 // Get sorted data for keyboard navigation
@@ -280,7 +285,7 @@ function handleKeyDown(event: KeyboardEvent) {
   }
 
   if (newIndex !== currentIndex && data[newIndex]) {
-    uiStore.selectedRow = data[newIndex];
+    uiStore.setSelectedRow(data[newIndex]);
     scrollToSelectedRow(newIndex);
   }
 }

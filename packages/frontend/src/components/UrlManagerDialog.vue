@@ -6,7 +6,7 @@ import Dialog from "primevue/dialog";
 import InputSwitch from "primevue/inputswitch";
 import InputText from "primevue/inputtext";
 import type { ActiveUrl } from "shared";
-import { onMounted, ref, watch } from "vue";
+import { onMounted, onUnmounted, ref, watch } from "vue";
 
 import { useSDK } from "@/plugins/sdk";
 import { useUIStore } from "@/stores/uiStore";
@@ -17,6 +17,10 @@ const uiStore = useUIStore();
 const visible = defineModel<boolean>("visible", { default: false });
 const activeUrls = ref<ActiveUrl[]>([]);
 const isLoading = ref(false);
+
+// Skip flag to avoid reloading when we made the change ourselves
+let skipNextUrlsChangeEvent = false;
+let urlsChangedSubscription: { stop: () => void } | undefined;
 
 async function loadUrls() {
   isLoading.value = true;
@@ -31,19 +35,34 @@ async function loadUrls() {
 
 async function toggleUrlActive(url: ActiveUrl) {
   try {
+    skipNextUrlsChangeEvent = true;
     await sdk.backend.setUrlActive(url.uniqueId, !url.isActive);
     url.isActive = !url.isActive;
   } catch (error) {
+    skipNextUrlsChangeEvent = false;
     console.error("Failed to toggle URL active state:", error);
   }
 }
 
 async function removeUrl(uniqueId: string) {
   try {
+    skipNextUrlsChangeEvent = true;
     await sdk.backend.removeUrl(uniqueId);
     activeUrls.value = activeUrls.value.filter((u) => u.uniqueId !== uniqueId);
   } catch (error) {
+    skipNextUrlsChangeEvent = false;
     console.error("Failed to remove URL:", error);
+  }
+}
+
+async function clearAllUrls() {
+  try {
+    skipNextUrlsChangeEvent = true;
+    await sdk.backend.clearUrls();
+    activeUrls.value = [];
+  } catch (error) {
+    skipNextUrlsChangeEvent = false;
+    console.error("Failed to clear URLs:", error);
   }
 }
 
@@ -55,6 +74,20 @@ function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleString();
 }
 
+// Subscribe to URL changes from other tabs
+function subscribeToUrlsChanged() {
+  urlsChangedSubscription = sdk.backend.onEvent("onUrlsChanged", () => {
+    if (skipNextUrlsChangeEvent) {
+      skipNextUrlsChangeEvent = false;
+      return;
+    }
+    // Only reload if dialog is visible
+    if (visible.value) {
+      loadUrls();
+    }
+  });
+}
+
 // Load URLs when dialog opens
 watch(visible, (newValue) => {
   if (newValue) {
@@ -63,9 +96,14 @@ watch(visible, (newValue) => {
 });
 
 onMounted(() => {
+  subscribeToUrlsChanged();
   if (visible.value) {
     loadUrls();
   }
+});
+
+onUnmounted(() => {
+  urlsChangedSubscription?.stop();
 });
 </script>
 
@@ -77,10 +115,20 @@ onMounted(() => {
     :style="{ width: '850px' }"
   >
     <div class="flex flex-col gap-4">
-      <p class="text-surface-400 text-sm">
-        Manage your generated URLs. Disable a URL to stop receiving interactions
-        from it.
-      </p>
+      <div class="flex items-center justify-between">
+        <p class="text-surface-400 text-sm">
+          Manage your generated URLs. Disable a URL to stop receiving
+          interactions from it.
+        </p>
+        <Button
+          label="Clear All"
+          icon="fas fa-trash"
+          severity="danger"
+          size="small"
+          :disabled="activeUrls.length === 0"
+          @click="clearAllUrls"
+        />
+      </div>
 
       <DataTable
         :value="activeUrls"

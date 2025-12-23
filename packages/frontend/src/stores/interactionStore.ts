@@ -19,7 +19,6 @@ export const useInteractionStore = defineStore("interaction", () => {
   const filterEnabled = ref(true);
   const selectedRows = ref<Interaction[]>([]);
   const rowColors = ref<Record<string, string>>({});
-  let pollingIntervalId: ReturnType<typeof setInterval> | undefined;
 
   // Flag to skip next data change event (when we made the change ourselves)
   let skipNextDataChangeEvent = false;
@@ -114,12 +113,42 @@ export const useInteractionStore = defineStore("interaction", () => {
     }
   }
 
+  // Maximum filter value length to prevent ReDoS
+  const MAX_FILTER_LENGTH = 256;
+
+  // Escape regex special characters except % and _ (for LIKE patterns)
+  function escapeRegexForLike(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  // Safely test regex with complexity limits
+  function safeRegexTest(
+    pattern: string,
+    value: string,
+    flags = "i",
+  ): boolean | undefined {
+    // Reject overly complex patterns
+    if (pattern.length > MAX_FILTER_LENGTH) {
+      return undefined;
+    }
+    try {
+      return new RegExp(pattern, flags).test(value);
+    } catch {
+      return undefined;
+    }
+  }
+
   // Apply operator to check if value matches
   function applyOperator(
     fieldValue: string,
     operator: string,
     filterValue: string,
   ): boolean {
+    // Limit filter value length to prevent ReDoS
+    if (filterValue.length > MAX_FILTER_LENGTH) {
+      return false;
+    }
+
     const lowerFilterValue = filterValue.toLowerCase();
 
     switch (operator) {
@@ -132,30 +161,26 @@ export const useInteractionStore = defineStore("interaction", () => {
       case "ncont":
         return !fieldValue.includes(lowerFilterValue);
       case "like": {
-        // Convert SQL LIKE pattern to regex: % -> .*, _ -> .
-        const likePattern = lowerFilterValue
-          .replace(/%/g, ".*")
-          .replace(/_/g, ".");
-        return new RegExp(`^${likePattern}$`, "i").test(fieldValue);
+        // Escape regex chars, then convert SQL LIKE wildcards: % -> .*, _ -> .
+        const escaped = escapeRegexForLike(lowerFilterValue);
+        const likePattern = escaped.replace(/%/g, ".*").replace(/_/g, ".");
+        const result = safeRegexTest(`^${likePattern}$`, fieldValue);
+        return result === true;
       }
       case "nlike": {
-        const nlikePattern = lowerFilterValue
-          .replace(/%/g, ".*")
-          .replace(/_/g, ".");
-        return !new RegExp(`^${nlikePattern}$`, "i").test(fieldValue);
+        const escaped = escapeRegexForLike(lowerFilterValue);
+        const nlikePattern = escaped.replace(/%/g, ".*").replace(/_/g, ".");
+        const result = safeRegexTest(`^${nlikePattern}$`, fieldValue);
+        return result === false || result === undefined;
       }
-      case "regex":
-        try {
-          return new RegExp(filterValue, "i").test(fieldValue);
-        } catch {
-          return false;
-        }
-      case "nregex":
-        try {
-          return !new RegExp(filterValue, "i").test(fieldValue);
-        } catch {
-          return true;
-        }
+      case "regex": {
+        const result = safeRegexTest(filterValue, fieldValue);
+        return result === true;
+      }
+      case "nregex": {
+        const result = safeRegexTest(filterValue, fieldValue);
+        return result === false || result === undefined;
+      }
       default:
         // Default to contains
         return fieldValue.includes(lowerFilterValue);
@@ -280,23 +305,6 @@ export const useInteractionStore = defineStore("interaction", () => {
     }
   }
 
-  function startPolling(intervalMs: number) {
-    if (pollingIntervalId) {
-      clearInterval(pollingIntervalId);
-    }
-
-    pollingIntervalId = setInterval(() => {
-      fetchNewInteractions();
-    }, intervalMs);
-  }
-
-  function stopPolling() {
-    if (pollingIntervalId) {
-      clearInterval(pollingIntervalId);
-      pollingIntervalId = undefined;
-    }
-  }
-
   async function initializeService() {
     if (isStarted.value) return true;
 
@@ -321,7 +329,7 @@ export const useInteractionStore = defineStore("interaction", () => {
     }
 
     isStarted.value = true;
-    startPolling(settings.pollingInterval);
+    // No need for frontend polling - backend emits events when new interactions arrive
 
     // If random mode is enabled, pre-initialize all server clients in background
     if (settings.serverMode === "random") {
@@ -344,8 +352,6 @@ export const useInteractionStore = defineStore("interaction", () => {
   }
 
   async function resetClientService() {
-    stopPolling();
-
     if (isStarted.value) {
       const { error } = await tryCatch(sdk.backend.stopInteractsh());
       if (error) {
@@ -408,8 +414,8 @@ export const useInteractionStore = defineStore("interaction", () => {
     uiStore.setBtnCount(0);
     sidebarItem.setCount(uiStore.btnCount);
 
-    // Clear all data on backend (interactions + URLs + persisted data)
-    sdk.backend.clearAllData();
+    // Clear only interactions on backend (keep URLs intact)
+    sdk.backend.clearInteractions();
 
     if (resetService) {
       resetClientService();
@@ -461,11 +467,6 @@ export const useInteractionStore = defineStore("interaction", () => {
     selectedRows.value = [];
   }
 
-  // Clear filter
-  function clearFilter() {
-    filterQuery.value = "";
-  }
-
   // Set row color
   function setRowColor(fullId: string, color: string | undefined) {
     if (color === undefined) {
@@ -483,7 +484,6 @@ export const useInteractionStore = defineStore("interaction", () => {
   // Load persisted data from backend and restore service state
   async function loadPersistedData() {
     const uiStore = useUIStore();
-    const settings = useSettingsStore();
 
     // Check if backend service is already started
     const { data: status, error: statusError } = await tryCatch(
@@ -493,7 +493,7 @@ export const useInteractionStore = defineStore("interaction", () => {
     if (!statusError && status?.isStarted) {
       // Backend is already running, sync frontend state
       isStarted.value = true;
-      startPolling(settings.pollingInterval);
+      // No need for frontend polling - backend emits events when new interactions arrive
       console.log("Backend service already running, synced frontend state");
     }
 
@@ -664,6 +664,11 @@ export const useInteractionStore = defineStore("interaction", () => {
     }
   }
 
+  // Find interaction by uniqueId
+  function findInteractionById(uniqueId: string): Interaction | undefined {
+    return data.value.find((item) => item.uniqueId === uniqueId);
+  }
+
   // Generate multiple URLs
   async function generateMultipleUrls(count: number): Promise<string[]> {
     const initialized = await initializeService();
@@ -705,7 +710,6 @@ export const useInteractionStore = defineStore("interaction", () => {
     generateMultipleUrls,
     manualPoll,
     clearData,
-    clearFilter,
     deleteInteraction,
     deleteSelected,
     resetClientService,
@@ -720,5 +724,6 @@ export const useInteractionStore = defineStore("interaction", () => {
     setFilterQuery,
     loadFilter,
     setInteractionTag,
+    findInteractionById,
   };
 });

@@ -15,12 +15,14 @@ import {
   getInteractions,
   getInteractshStatus,
   getNewInteractions,
+  getSelectedRowId,
   initializeClients,
   pollInteractsh,
   removeUrl,
   setFilter,
   setFilterEnabled,
   setInteractionTag,
+  setSelectedRowId,
   setUrlActive,
   startInteractsh,
   stopInteractsh,
@@ -57,6 +59,8 @@ export type API = DefineAPI<{
   setFilterEnabled: typeof setFilterEnabled;
   getFilterEnabled: typeof getFilterEnabled;
   setInteractionTag: typeof setInteractionTag;
+  setSelectedRowId: typeof setSelectedRowId;
+  getSelectedRowId: typeof getSelectedRowId;
 }>;
 
 // Events that can be sent from backend to frontend
@@ -65,6 +69,8 @@ export type BackendEvents = DefineEvents<{
   onUrlGenerated: (url: string) => void;
   onFilterChanged: (filter: string) => void;
   onFilterEnabledChanged: (enabled: boolean) => void;
+  onUrlsChanged: () => void;
+  onRowSelected: (uniqueId: string | undefined) => void;
 }>;
 
 let sdkInstance: SDK<API, BackendEvents> | undefined;
@@ -94,6 +100,18 @@ export function emitFilterChanged(filter: string): void {
 export function emitFilterEnabledChanged(enabled: boolean): void {
   if (sdkInstance) {
     sdkInstance.api.send("onFilterEnabledChanged", enabled);
+  }
+}
+
+export function emitUrlsChanged(): void {
+  if (sdkInstance) {
+    sdkInstance.api.send("onUrlsChanged");
+  }
+}
+
+export function emitRowSelected(uniqueId: string | undefined): void {
+  if (sdkInstance) {
+    sdkInstance.api.send("onRowSelected", uniqueId);
   }
 }
 
@@ -144,4 +162,8 @@ export function init(sdk: SDK<API, BackendEvents>) {
 
   // Tag API
   sdk.api.register("setInteractionTag", setInteractionTag);
+
+  // Selection API
+  sdk.api.register("setSelectedRowId", setSelectedRowId);
+  sdk.api.register("getSelectedRowId", getSelectedRowId);
 }

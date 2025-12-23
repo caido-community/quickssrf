@@ -14,7 +14,27 @@ import {
   type RSAKeyPair,
   rsaOaepDecrypt,
   type RSAPrivateKey,
+  type RSAPublicKey,
 } from "./rsa";
+
+/**
+ * Serializable RSA key pair for persistence
+ */
+export interface SerializedRSAKeyPair {
+  publicKey: {
+    n: string;
+    e: string;
+  };
+  privateKey: {
+    n: string;
+    d: string;
+    p: string;
+    q: string;
+    dp: string;
+    dq: string;
+    qi: string;
+  };
+}
 
 /**
  * Convert Uint8Array to UTF-8 string
@@ -53,6 +73,54 @@ export function initializeRSAKeys(): void {
  */
 export function areKeysInitialized(): boolean {
   return keysInitialized;
+}
+
+/**
+ * Export RSA key pair to serializable format
+ */
+export function exportRSAKeyPair(): SerializedRSAKeyPair | undefined {
+  if (!keyPair) {
+    return undefined;
+  }
+
+  return {
+    publicKey: {
+      n: keyPair.publicKey.n.toString(),
+      e: keyPair.publicKey.e.toString(),
+    },
+    privateKey: {
+      n: keyPair.privateKey.n.toString(),
+      d: keyPair.privateKey.d.toString(),
+      p: keyPair.privateKey.p.toString(),
+      q: keyPair.privateKey.q.toString(),
+      dp: keyPair.privateKey.dp.toString(),
+      dq: keyPair.privateKey.dq.toString(),
+      qi: keyPair.privateKey.qi.toString(),
+    },
+  };
+}
+
+/**
+ * Import RSA key pair from serialized format
+ */
+export function importRSAKeyPair(serialized: SerializedRSAKeyPair): void {
+  const publicKey: RSAPublicKey = {
+    n: BigInt(serialized.publicKey.n),
+    e: BigInt(serialized.publicKey.e),
+  };
+
+  const privateKey: RSAPrivateKey = {
+    n: BigInt(serialized.privateKey.n),
+    d: BigInt(serialized.privateKey.d),
+    p: BigInt(serialized.privateKey.p),
+    q: BigInt(serialized.privateKey.q),
+    dp: BigInt(serialized.privateKey.dp),
+    dq: BigInt(serialized.privateKey.dq),
+    qi: BigInt(serialized.privateKey.qi),
+  };
+
+  keyPair = { publicKey, privateKey };
+  keysInitialized = true;
 }
 
 /**

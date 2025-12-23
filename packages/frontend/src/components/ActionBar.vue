@@ -59,6 +59,8 @@ function exportToCSV() {
     "Payload",
     "Tag",
     "Date-Time",
+    "Raw Request",
+    "Raw Response",
   ];
   const rows = data.map((item) => [
     item.req,
@@ -68,6 +70,8 @@ function exportToCSV() {
     item.payloadUrl || item.fullId,
     item.tag || "",
     item.localDateTime,
+    item.rawRequest || "",
+    item.rawResponse || "",
   ]);
 
   const csvContent = [
