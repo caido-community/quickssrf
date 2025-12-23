@@ -84,7 +84,7 @@ function getFilterValueForField(
   }
 }
 
-function addFilterFromContext() {
+function applyFilterFromContext(operator: "eq" | "ne") {
   if (!contextMenuRow.value || !contextMenuField.value) return;
 
   const filterField = fieldToFilterMap[contextMenuField.value];
@@ -95,7 +95,7 @@ function addFilterFromContext() {
 
   if (!filterField || !value) return;
 
-  const filterExpr = `${filterField}.eq:"${value}"`;
+  const filterExpr = `${filterField}.${operator}:"${value}"`;
   const currentFilter = interactionStore.filterQuery.trim();
 
   if (currentFilter) {
@@ -107,9 +107,14 @@ function addFilterFromContext() {
 
 const contextMenuItems = ref([
   {
-    label: "Add Filter",
+    label: "Include Filter",
     icon: "fas fa-filter",
-    command: addFilterFromContext,
+    command: () => applyFilterFromContext("eq"),
+  },
+  {
+    label: "Exclude Filter",
+    icon: "fas fa-filter-circle-xmark",
+    command: () => applyFilterFromContext("ne"),
   },
   {
     label: "Set Color",
