@@ -165,12 +165,16 @@ export function decryptMessage(key: string, secureMessage: string): string {
     throw new Error("Keys not initialized. Call initializeRSAKeys() first.");
   }
 
+// FIX 1: Sanitize the incoming message string
+  // Remove all newlines, spaces, and tabs before processing
+  const cleanMessage = secureMessage.replace(/[\r\n\s]+/g, '');
+
   // Step 1: Decrypt the AES key using RSA-OAEP
   const encryptedKeyBytes = base64ToUint8Array(key);
   const decryptedKey = rsaOaepDecrypt(encryptedKeyBytes, keyPair.privateKey);
 
-  // Step 2: Decode the secure message from base64
-  const secureMessageBuffer = base64ToUint8Array(secureMessage);
+  // Step 2: Decode the secure message from base64 (USING CLEAN STRING)
+  const secureMessageBuffer = base64ToUint8Array(cleanMessage);
 
   // Step 3: Extract IV (first 16 bytes) and ciphertext (rest)
   const iv = secureMessageBuffer.slice(0, 16);
