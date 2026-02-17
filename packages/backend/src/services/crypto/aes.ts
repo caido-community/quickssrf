@@ -315,3 +315,51 @@ export function aesCfbEncrypt(
 
   return ciphertext;
 }
+
+/**
+ * AES-256-CTR decryption/encryption
+ * Note: In CTR mode, encryption and decryption are identical operations.
+ * We encrypt the counter to generate a keystream, then XOR with input.
+ */
+export function aesCtrDecrypt(
+  key: Uint8Array,
+  iv: Uint8Array,
+  data: Uint8Array,
+): Uint8Array {
+  if (key.length !== 32) {
+    throw new Error("AES-256 requires a 32-byte key");
+  }
+  if (iv.length !== 16) {
+    throw new Error("AES requires a 16-byte IV");
+  }
+
+  const roundKeys = keyExpansion(key);
+  const output = new Uint8Array(data.length);
+  
+  // Clone IV to create the initial counter block
+  const counter = new Uint8Array(iv);
+
+  for (let i = 0; i < data.length; i += 16) {
+    // 1. Generate keystream by encrypting the counter
+    const keystream = aesEncryptBlock(counter, roundKeys);
+
+    // 2. XOR keystream with data (plaintext or ciphertext)
+    const blockSize = Math.min(16, data.length - i);
+    for (let j = 0; j < blockSize; j++) {
+      output[i + j] = data[i + j]! ^ keystream[j]!;
+    }
+
+    // 3. Increment Counter (Standard 128-bit Big Endian Increment)
+    // We start at the last byte and move backwards
+    for (let k = 15; k >= 0; k--) {
+      if (counter[k] === 255) {
+        counter[k] = 0; // Wrap around and carry over to next byte
+      } else {
+        counter[k]!++;
+        break; // No carry over, stop incrementing
+      }
+    }
+  }
+
+  return output;
+}
