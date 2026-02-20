@@ -12,18 +12,18 @@
     "lint": "eslint --fix packages/*/src"
   },
   "devDependencies": {
-    "@caido-community/dev": "0.1.5",
+    "@caido-community/dev": "0.1.6",
     "@caido/eslint-config": "0.2.0",
     "@caido/tailwindcss": "0.0.1",
     "@vitejs/plugin-vue": "5.2.3",
     "eslint": "9.23.0",
-    "postcss-prefixwrap": "1.54.0",
+    "postcss-prefixwrap": "1.57.2",
     "tailwindcss": "3.4.13",
     "tailwindcss-primeui": "0.5.1",
     "typescript": "5.8.2",
-    "vite": "6.3.6"
+    "vite": "6.4.1"
   },
   "dependencies": {
-    "pinia": "3.0.1"
+    "pinia": "3.0.4"
   }
 }
