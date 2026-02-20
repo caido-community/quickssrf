@@ -6,7 +6,7 @@
 import { Buffer } from "buffer";
 import { randomBytes } from "crypto";
 
-import { aesCfbDecrypt } from "./aes";
+import { aesCfbDecrypt, aesCtrDecrypt } from "./aes";
 import {
   base64ToUint8Array,
   exportPublicKeyPEM,
@@ -165,12 +165,16 @@ export function decryptMessage(key: string, secureMessage: string): string {
     throw new Error("Keys not initialized. Call initializeRSAKeys() first.");
   }
 
+// FIX 1: Sanitize the incoming message string
+  // Remove all newlines, spaces, and tabs before processing
+  const cleanMessage = secureMessage.replace(/[\r\n\s]+/g, '');
+
   // Step 1: Decrypt the AES key using RSA-OAEP
   const encryptedKeyBytes = base64ToUint8Array(key);
   const decryptedKey = rsaOaepDecrypt(encryptedKeyBytes, keyPair.privateKey);
 
-  // Step 2: Decode the secure message from base64
-  const secureMessageBuffer = base64ToUint8Array(secureMessage);
+  // Step 2: Decode the secure message from base64 (USING CLEAN STRING)
+  const secureMessageBuffer = base64ToUint8Array(cleanMessage);
 
   // Step 3: Extract IV (first 16 bytes) and ciphertext (rest)
   const iv = secureMessageBuffer.slice(0, 16);
@@ -190,10 +194,23 @@ export function decryptMessage(key: string, secureMessage: string): string {
     aesKey = decryptedKey.slice(0, 32);
   }
 
-  const decrypted = aesCfbDecrypt(aesKey, iv, ciphertext);
+// Attempt 1: Try AES-CTR (New Servers)
+  try {
+    const decryptedCtr = aesCtrDecrypt(aesKey, iv, ciphertext);
+    const ctrString = uint8ArrayToString(decryptedCtr);
+    
+    // Validate: If it parses as JSON, return it immediately
+    
+    JSON.parse(ctrString); 
+    
+    return ctrString;
+  } catch (e) {
+    // This throws if the decryption was garbage that can't be parsed as JSON, which is likely the case for old servers using AES-CFB
+}
 
-  // Convert to UTF-8 string
-  return uint8ArrayToString(decrypted);
+  // Attempt 2: Fallback to AES-CFB (Old Servers)
+  const decryptedCfb = aesCfbDecrypt(aesKey, iv, ciphertext);
+  return uint8ArrayToString(decryptedCfb);
 }
 
 /**
