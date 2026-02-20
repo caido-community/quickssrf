@@ -165,9 +165,9 @@ export function decryptMessage(key: string, secureMessage: string): string {
     throw new Error("Keys not initialized. Call initializeRSAKeys() first.");
   }
 
-// FIX 1: Sanitize the incoming message string
+  // FIX 1: Sanitize the incoming message string
   // Remove all newlines, spaces, and tabs before processing
-  const cleanMessage = secureMessage.replace(/[\r\n\s]+/g, '');
+  const cleanMessage = secureMessage.replace(/[\r\n\s]+/g, "");
 
   // Step 1: Decrypt the AES key using RSA-OAEP
   const encryptedKeyBytes = base64ToUint8Array(key);
@@ -194,19 +194,19 @@ export function decryptMessage(key: string, secureMessage: string): string {
     aesKey = decryptedKey.slice(0, 32);
   }
 
-// Attempt 1: Try AES-CTR (New Servers)
+  // Attempt 1: Try AES-CTR (New Servers)
   try {
     const decryptedCtr = aesCtrDecrypt(aesKey, iv, ciphertext);
     const ctrString = uint8ArrayToString(decryptedCtr);
-    
+
     // Validate: If it parses as JSON, return it immediately
-    
-    JSON.parse(ctrString); 
-    
+
+    JSON.parse(ctrString);
+
     return ctrString;
   } catch (e) {
     // This throws if the decryption was garbage that can't be parsed as JSON, which is likely the case for old servers using AES-CFB
-}
+  }
 
   // Attempt 2: Fallback to AES-CFB (Old Servers)
   const decryptedCfb = aesCfbDecrypt(aesKey, iv, ciphertext);

@@ -335,7 +335,7 @@ export function aesCtrDecrypt(
 
   const roundKeys = keyExpansion(key);
   const output = new Uint8Array(data.length);
-  
+
   // Clone IV to create the initial counter block
   const counter = new Uint8Array(iv);
 
