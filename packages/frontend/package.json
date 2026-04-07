@@ -1,26 +1,24 @@
 {
   "name": "frontend",
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@caido/primevue": "0.1.8",
-    "@caido/sdk-frontend": "0.47.1",
-    "@fortawesome/fontawesome-free": "6.7.2",
-    "@vue/typescript-plugin": "^2.2.8",
-    "@vueuse/core": "13.0.0",
-    "pinia": "3.0.1",
-    "primevue": "4.3.2",
+    "@caido/primevue": "0.3.3",
+    "@vueuse/core": "13.9.0",
+    "pinia": "3.0.4",
+    "primevue": "4.1.0",
     "shared": "workspace:*",
-    "uuid": "^11.1.0",
-    "vue": "3.5.13"
+    "vue": "3.5.22"
   },
   "devDependencies": {
-    "@caido/sdk-backend": "0.47.1",
-    "@codemirror/view": "6.36.4",
+    "@caido/sdk-backend": "0.55.3",
+    "@caido/sdk-frontend": "0.55.3",
+    "@codemirror/view": "6.38.5",
     "backend": "workspace:*",
-    "vue-tsc": "2.2.8"
+    "vue-tsc": "3.1.1"
   }
 }

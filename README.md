@@ -1,45 +1,52 @@
-# QuickSSRF - CAIDO Plugin
+<div align="center">
+  <img width="1000" alt="image" src="https://github.com/caido-community/.github/blob/main/content/banner.png?raw=true">
 
-## English Version
+  <br />
+  <br />
+  <a href="https://github.com/caido-community" target="_blank">Github</a>
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <a href="https://developer.caido.io/" target="_blank">Documentation</a>
+  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <a href="https://links.caido.io/www-discord" target="_blank">Discord</a>
+  <br />
+  <hr />
+</div>
 
-### QuickSSRF - CAIDO Plugin
+# QuickSSRF
 
-QuickSSRF is a plugin designed to integrate with [CAIDO](https://caido.io/) and leverage the [Interactsh](https://projectdiscovery.io/) service from ProjectDiscovery. This tool is tailored for monitoring and capturing interactions with external services, assisting security professionals in detecting Server-Side Request Forgery (SSRF) vulnerabilities.
+Out-of-Band (OOB) interaction monitoring with multi-provider OAST support. Generate payload URLs, capture DNS/HTTP/SMTP/FTP/LDAP/SMB interactions, and view raw request/response data directly in Caido.
 
----
+## Installation
 
-### Features
-- **Real-time Interaction Monitoring**: Tracks and logs external interactions initiated by the target system.
-- **Integration with Interactsh**: Uses ProjectDiscovery's Interactsh API for effortless detection of external callbacks.
-- **Enhanced Vulnerability Identification**: Facilitates precise identification of SSRF vulnerabilities.
-- **Seamless Integration**: Works directly within CAIDO for streamlined workflows.
+### From Plugin Store
 
----
+1. Open Caido
+2. Navigate to **Plugins**
+3. Search for "QuickSSRF"
+4. Click **Install**
 
-### Installation
-1. Clone the repository:
+### Manual Installation
+
+1. Install dependencies:
+
    ```bash
-   git clone https://github.com/your-repo/QuickSSRF.git
-   cd QuickSSRF
-   pnpm i
+   pnpm install
+   ```
+
+2. Build the plugin:
+
+   ```bash
    pnpm build
+   ```
 
+3. Install in Caido:
+   - Upload the `plugin_package.zip` file by clicking "Install Package" in Caido's plugins tab.
 
-# QuickSSRF - Plugin CAIDO
+## Development
 
-## Version Française
+## 🤝 Contributing
 
-### QuickSSRF - Plugin CAIDO
+Contributions are welcome! Please feel free to submit issues and enhancement requests.
 
-QuickSSRF est un plugin conçu pour s'intégrer avec [CAIDO](https://caido.io/) et utiliser le service [Interactsh](https://projectdiscovery.io/) de ProjectDiscovery. Cet outil est destiné à surveiller et capturer les interactions avec des services externes, aidant les professionnels de la cybersécurité à détecter les vulnérabilités de type SSRF (Server-Side Request Forgery).
+> Originally created by [w2xim3](https://github.com/w2xim3).
 
----
-
-### Fonctionnalités
-- **Surveillance en temps réel** : Suivi et enregistrement des interactions externes initiées par le système cible.
-- **Intégration avec Interactsh** : Utilise l'API d'Interactsh pour détecter facilement les callbacks externes.
-- **Identification améliorée des vulnérabilités** : Aide à identifier précisément les vulnérabilités SSRF.
-- **Intégration transparente** : Fonctionne directement avec CAIDO pour des flux de travail optimisés.
-
----
-![img.png](https://raw.githubusercontent.com/caido-community/quickssrf/main/img.png)

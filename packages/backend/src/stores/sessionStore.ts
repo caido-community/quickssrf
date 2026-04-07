@@ -1,174 +1,174 @@
-/**
- * Session persistence store using Caido's secure environment variables
- * Handles storage of RSA keys and client sessions for resumption after restart
- * Sensitive data is encrypted on disk using sdk.env.setVar with secret: true
- */
+import path from "path";
 
-import type { SDK } from "caido:plugin";
+import type { Interaction, Session, SessionStatus } from "shared";
+
+import { SessionNotFoundError } from "../errors";
+import type { ProviderSession } from "../providers/types";
+import { requireSDK } from "../sdk";
 
 import {
-  exportRSAKeyPair,
-  importRSAKeyPair,
-  initializeRSAKeys,
-  type SerializedRSAKeyPair,
-} from "../services/crypto";
+  deleteJson,
+  getBasePath,
+  listJsonFiles,
+  readJson,
+  writeJson,
+} from "./baseStorage";
 
-// Environment variable names for secure storage
-const ENV_RSA_KEYS = "QUICKSSRF_RSA_KEYS";
-const ENV_CLIENT_SESSIONS = "QUICKSSRF_CLIENT_SESSIONS";
+type SessionFile = {
+  session: Session;
+  interactions: Interaction[];
+  providerSession?: ProviderSession;
+};
 
-/**
- * Client session data for persistence
- */
-export interface ClientSession {
-  serverUrl: string;
-  correlationId: string;
-  secretKey: string;
-  token?: string;
-}
-
-/**
- * Session store for persisting interactsh client data
- * Uses Caido's secure environment variables (encrypted on disk)
- */
-export class SessionStore {
-  private static _instance?: SessionStore;
-  private sdk: SDK;
-
-  private constructor(sdk: SDK) {
-    this.sdk = sdk;
+class SessionStoreClass {
+  private getSessionsDir(): string {
+    return path.join(getBasePath(), "sessions");
   }
 
-  static get(sdk: SDK): SessionStore {
-    if (!SessionStore._instance) {
-      SessionStore._instance = new SessionStore(sdk);
-    }
-    return SessionStore._instance;
+  private getSessionPath(sessionId: string): string {
+    return path.join(this.getSessionsDir(), `${sessionId}.json`);
   }
 
-  /**
-   * Load or generate RSA keys
-   * Returns true if keys were loaded from persistence, false if newly generated
-   */
-  async loadOrGenerateRSAKeys(): Promise<boolean> {
-    const storedKeys = this.sdk.env.getVar(ENV_RSA_KEYS);
-
-    if (storedKeys) {
-      try {
-        const serialized: SerializedRSAKeyPair = JSON.parse(storedKeys);
-        importRSAKeyPair(serialized);
-        this.sdk.console.log("RSA keys loaded from secure storage");
-        return true;
-      } catch (error) {
-        this.sdk.console.error(`Failed to load RSA keys: ${error}`);
-      }
-    }
-
-    // Generate new keys
-    initializeRSAKeys();
-    await this.saveRSAKeys();
-    this.sdk.console.log("New RSA keys generated and saved to secure storage");
-    return false;
+  private async loadFile(sessionId: string): Promise<SessionFile | undefined> {
+    return readJson<SessionFile>(this.getSessionPath(sessionId));
   }
 
-  /**
-   * Save current RSA keys to secure storage
-   */
-  async saveRSAKeys(): Promise<void> {
-    const serialized = exportRSAKeyPair();
-    if (!serialized) {
-      return;
-    }
+  private async saveFile(file: SessionFile): Promise<void> {
+    await writeJson(this.getSessionPath(file.session.id), file);
+  }
 
-    try {
-      await this.sdk.env.setVar({
-        name: ENV_RSA_KEYS,
-        value: JSON.stringify(serialized),
-        secret: true, // Encrypted on disk
-        global: true,
+  async getSessions(): Promise<Session[]> {
+    const files = await listJsonFiles<SessionFile>(this.getSessionsDir());
+    return files
+      .map((f) => f.data.session)
+      .sort((a, b) => {
+        const timeDiff =
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        if (timeDiff !== 0) return timeDiff;
+        return a.id.localeCompare(b.id);
       });
-    } catch (error) {
-      this.sdk.console.error(`Failed to save RSA keys: ${error}`);
-    }
   }
 
-  /**
-   * Load all client sessions from secure storage
-   */
-  private loadSessionsFromEnv(): ClientSession[] {
-    const storedSessions = this.sdk.env.getVar(ENV_CLIENT_SESSIONS);
-    if (!storedSessions) {
-      return [];
-    }
-
-    try {
-      return JSON.parse(storedSessions) as ClientSession[];
-    } catch {
-      return [];
-    }
+  async getSession(id: string): Promise<Session | undefined> {
+    const file = await this.loadFile(id);
+    return file?.session;
   }
 
-  /**
-   * Save all client sessions to secure storage
-   */
-  private async saveSessionsToEnv(sessions: ClientSession[]): Promise<void> {
-    try {
-      await this.sdk.env.setVar({
-        name: ENV_CLIENT_SESSIONS,
-        value: JSON.stringify(sessions),
-        secret: true, // Encrypted on disk
-        global: true,
-      });
-    } catch (error) {
-      this.sdk.console.error(`Failed to save sessions: ${error}`);
-    }
+  async getProviderSession(id: string): Promise<ProviderSession | undefined> {
+    const file = await this.loadFile(id);
+    return file?.providerSession;
   }
 
-  /**
-   * Save a client session
-   */
-  async saveClientSession(session: ClientSession): Promise<void> {
-    const sessions = this.loadSessionsFromEnv();
+  async addSession(
+    session: Session,
+    providerSession?: ProviderSession,
+  ): Promise<void> {
+    await this.saveFile({ session, interactions: [], providerSession });
 
-    // Update existing or add new
-    const existingIndex = sessions.findIndex(
-      (s) => s.serverUrl === session.serverUrl,
+    const sdk = requireSDK();
+    sdk.api.send("session:created", session);
+  }
+
+  async updateSessionStatus(
+    id: string,
+    status: SessionStatus,
+  ): Promise<Session> {
+    const file = await this.loadFile(id);
+    if (file === undefined) throw new SessionNotFoundError(id);
+
+    file.session.status = status;
+    await this.saveFile(file);
+
+    const sdk = requireSDK();
+    sdk.api.send("session:updated", file.session);
+    return file.session;
+  }
+
+  async updateSessionTitle(id: string, title: string): Promise<Session> {
+    const file = await this.loadFile(id);
+    if (file === undefined) throw new SessionNotFoundError(id);
+
+    file.session.title = title;
+    await this.saveFile(file);
+
+    const sdk = requireSDK();
+    sdk.api.send("session:updated", file.session);
+    return file.session;
+  }
+
+  async deleteSession(id: string): Promise<void> {
+    const file = await this.loadFile(id);
+    if (file === undefined) throw new SessionNotFoundError(id);
+
+    await deleteJson(this.getSessionPath(id));
+
+    const sdk = requireSDK();
+    sdk.api.send("session:deleted", id);
+  }
+
+  async getInteractions(sessionId: string): Promise<Interaction[]> {
+    const file = await this.loadFile(sessionId);
+    return file?.interactions ?? [];
+  }
+
+  async addInteractions(
+    sessionId: string,
+    interactions: Interaction[],
+  ): Promise<void> {
+    const file = await this.loadFile(sessionId);
+    if (file === undefined) throw new SessionNotFoundError(sessionId);
+
+    const existingKeys = new Set(
+      file.interactions.map(
+        (i) => `${i.uniqueId}:${i.timestamp}:${i.protocol}`,
+      ),
     );
-    if (existingIndex >= 0) {
-      sessions[existingIndex] = session;
-    } else {
-      sessions.push(session);
+
+    const newInteractions = interactions.filter(
+      (i) => !existingKeys.has(`${i.uniqueId}:${i.timestamp}:${i.protocol}`),
+    );
+
+    if (newInteractions.length === 0) return;
+
+    const startIndex = file.interactions.length;
+    for (let i = 0; i < newInteractions.length; i++) {
+      newInteractions[i]!.index = startIndex + i;
     }
+    file.interactions.push(...newInteractions);
+    file.session.interactionCount = file.interactions.length;
+    await this.saveFile(file);
 
-    await this.saveSessionsToEnv(sessions);
-    this.sdk.console.log(`Session saved for ${session.serverUrl}`);
+    const sdk = requireSDK();
+    sdk.api.send("interaction:received", {
+      sessionId,
+      interactions: newInteractions,
+    });
+    sdk.api.send("session:updated", file.session);
   }
 
-  /**
-   * Load all client sessions
-   */
-  loadClientSessions(): ClientSession[] {
-    return this.loadSessionsFromEnv();
-  }
+  async deleteInteraction(
+    sessionId: string,
+    interactionId: string,
+  ): Promise<void> {
+    const file = await this.loadFile(sessionId);
+    if (file === undefined) throw new SessionNotFoundError(sessionId);
 
-  /**
-   * Delete a client session
-   */
-  async deleteClientSession(serverUrl: string): Promise<void> {
-    const sessions = this.loadSessionsFromEnv();
-    const filtered = sessions.filter((s) => s.serverUrl !== serverUrl);
-
-    if (filtered.length !== sessions.length) {
-      await this.saveSessionsToEnv(filtered);
-      this.sdk.console.log(`Session deleted for ${serverUrl}`);
+    const index = file.interactions.findIndex((i) => i.id === interactionId);
+    if (index !== -1) {
+      file.interactions.splice(index, 1);
+      file.session.interactionCount = file.interactions.length;
+      await this.saveFile(file);
     }
   }
 
-  /**
-   * Delete all client sessions
-   */
-  async clearAllSessions(): Promise<void> {
-    await this.saveSessionsToEnv([]);
-    this.sdk.console.log("All sessions cleared");
+  async clearInteractions(sessionId: string): Promise<void> {
+    const file = await this.loadFile(sessionId);
+    if (file === undefined) throw new SessionNotFoundError(sessionId);
+
+    file.interactions = [];
+    file.session.interactionCount = 0;
+    await this.saveFile(file);
   }
 }
+
+export const sessionStore = new SessionStoreClass();

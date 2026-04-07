@@ -1,169 +1,106 @@
 import type { DefineAPI, DefineEvents, SDK } from "caido:plugin";
+import type { BackendEventMap } from "shared";
 
-import { initializeRSAKeys } from "./services/crypto";
 import {
-  clearAllData,
-  clearInteractions,
-  clearUrls,
-  deleteInteraction,
-  deleteInteractions,
-  generateInteractshUrl,
-  getActiveUrls,
-  getClientCount,
-  getFilter,
-  getFilterEnabled,
-  getInteractions,
-  getInteractshStatus,
-  getNewInteractions,
-  getSelectedRowId,
-  initializeClients,
-  pollInteractsh,
-  removeUrl,
-  setFilter,
-  setFilterEnabled,
-  setInteractionTag,
-  setSelectedRowId,
-  setUrlActive,
-  startInteractsh,
-  stopInteractsh,
-} from "./services/interactshApi";
-import {
-  getSettings,
-  resetSettings,
-  updateSettings,
-} from "./services/settings";
+  apiAddProvider,
+  apiClearInteractions,
+  apiCreateSession,
+  apiDeleteInteraction,
+  apiDeleteProvider,
+  apiDeleteSession,
+  apiGetActiveSessionIds,
+  apiGetConfig,
+  apiGetInteractions,
+  apiGetPollingStatus,
+  apiGetProvider,
+  apiGetProviders,
+  apiGetSession,
+  apiGetSessions,
+  apiPollSession,
+  apiResumeSession,
+  apiStartPolling,
+  apiStopPolling,
+  apiStopSession,
+  apiUpdateConfig,
+  apiUpdateProvider,
+  apiUpdateSessionTitle,
+} from "./api";
+import { setSDK } from "./sdk";
+import { restoreSessions, startPolling } from "./services";
+import { configStore, providerStore } from "./stores";
+import type { BackendEvents as BackendEventsType } from "./types";
 
 export type API = DefineAPI<{
-  getSettings: typeof getSettings;
-  updateSettings: typeof updateSettings;
-  resetSettings: typeof resetSettings;
-  startInteractsh: typeof startInteractsh;
-  stopInteractsh: typeof stopInteractsh;
-  generateInteractshUrl: typeof generateInteractshUrl;
-  getInteractions: typeof getInteractions;
-  getNewInteractions: typeof getNewInteractions;
-  pollInteractsh: typeof pollInteractsh;
-  clearInteractions: typeof clearInteractions;
-  deleteInteraction: typeof deleteInteraction;
-  deleteInteractions: typeof deleteInteractions;
-  getInteractshStatus: typeof getInteractshStatus;
-  getActiveUrls: typeof getActiveUrls;
-  setUrlActive: typeof setUrlActive;
-  removeUrl: typeof removeUrl;
-  clearUrls: typeof clearUrls;
-  initializeClients: typeof initializeClients;
-  getClientCount: typeof getClientCount;
-  clearAllData: typeof clearAllData;
-  setFilter: typeof setFilter;
-  getFilter: typeof getFilter;
-  setFilterEnabled: typeof setFilterEnabled;
-  getFilterEnabled: typeof getFilterEnabled;
-  setInteractionTag: typeof setInteractionTag;
-  setSelectedRowId: typeof setSelectedRowId;
-  getSelectedRowId: typeof getSelectedRowId;
+  createSession: typeof apiCreateSession;
+  getSessions: typeof apiGetSessions;
+  getSession: typeof apiGetSession;
+  deleteSession: typeof apiDeleteSession;
+  stopSession: typeof apiStopSession;
+  resumeSession: typeof apiResumeSession;
+  pollSession: typeof apiPollSession;
+  updateSessionTitle: typeof apiUpdateSessionTitle;
+  getActiveSessionIds: typeof apiGetActiveSessionIds;
+
+  getProviders: typeof apiGetProviders;
+  getProvider: typeof apiGetProvider;
+  addProvider: typeof apiAddProvider;
+  updateProvider: typeof apiUpdateProvider;
+  deleteProvider: typeof apiDeleteProvider;
+
+  getInteractions: typeof apiGetInteractions;
+  deleteInteraction: typeof apiDeleteInteraction;
+  clearInteractions: typeof apiClearInteractions;
+
+  getConfig: typeof apiGetConfig;
+  updateConfig: typeof apiUpdateConfig;
+
+  startPolling: typeof apiStartPolling;
+  stopPolling: typeof apiStopPolling;
+  getPollingStatus: typeof apiGetPollingStatus;
 }>;
 
-// Events that can be sent from backend to frontend
-export type BackendEvents = DefineEvents<{
-  onDataChanged: () => void;
-  onUrlGenerated: (url: string) => void;
-  onFilterChanged: (filter: string) => void;
-  onFilterEnabledChanged: (enabled: boolean) => void;
-  onUrlsChanged: () => void;
-  onRowSelected: (uniqueId: string | undefined) => void;
-}>;
+export type BackendEvents = DefineEvents<BackendEventMap>;
 
-let sdkInstance: SDK<API, BackendEvents> | undefined;
+export async function init(sdk: SDK<API, BackendEventsType>) {
+  setSDK(sdk);
 
-export function getSDK(): SDK<API, BackendEvents> | undefined {
-  return sdkInstance;
-}
+  await configStore.initialize();
+  await providerStore.initialize();
 
-export function emitDataChanged(): void {
-  if (sdkInstance) {
-    sdkInstance.api.send("onDataChanged");
-  }
-}
+  sdk.api.register("createSession", apiCreateSession);
+  sdk.api.register("getSessions", apiGetSessions);
+  sdk.api.register("getSession", apiGetSession);
+  sdk.api.register("deleteSession", apiDeleteSession);
+  sdk.api.register("stopSession", apiStopSession);
+  sdk.api.register("resumeSession", apiResumeSession);
+  sdk.api.register("pollSession", apiPollSession);
+  sdk.api.register("updateSessionTitle", apiUpdateSessionTitle);
+  sdk.api.register("getActiveSessionIds", apiGetActiveSessionIds);
 
-export function emitUrlGenerated(url: string): void {
-  if (sdkInstance) {
-    sdkInstance.api.send("onUrlGenerated", url);
-  }
-}
+  sdk.api.register("getProviders", apiGetProviders);
+  sdk.api.register("getProvider", apiGetProvider);
+  sdk.api.register("addProvider", apiAddProvider);
+  sdk.api.register("updateProvider", apiUpdateProvider);
+  sdk.api.register("deleteProvider", apiDeleteProvider);
 
-export function emitFilterChanged(filter: string): void {
-  if (sdkInstance) {
-    sdkInstance.api.send("onFilterChanged", filter);
-  }
-}
+  sdk.api.register("getInteractions", apiGetInteractions);
+  sdk.api.register("deleteInteraction", apiDeleteInteraction);
+  sdk.api.register("clearInteractions", apiClearInteractions);
 
-export function emitFilterEnabledChanged(enabled: boolean): void {
-  if (sdkInstance) {
-    sdkInstance.api.send("onFilterEnabledChanged", enabled);
-  }
-}
+  sdk.api.register("getConfig", apiGetConfig);
+  sdk.api.register("updateConfig", apiUpdateConfig);
 
-export function emitUrlsChanged(): void {
-  if (sdkInstance) {
-    sdkInstance.api.send("onUrlsChanged");
-  }
-}
+  sdk.api.register("startPolling", apiStartPolling);
+  sdk.api.register("stopPolling", apiStopPolling);
+  sdk.api.register("getPollingStatus", apiGetPollingStatus);
 
-export function emitRowSelected(uniqueId: string | undefined): void {
-  if (sdkInstance) {
-    sdkInstance.api.send("onRowSelected", uniqueId);
-  }
-}
+  sdk.events.onProjectChange(async () => {
+    await configStore.initialize();
+    await providerStore.initialize();
+  });
 
-export function init(sdk: SDK<API, BackendEvents>) {
-  sdkInstance = sdk;
-  sdk.console.log("Initializing QuickSSRF backend");
+  await restoreSessions();
+  startPolling();
 
-  // Pre-initialize RSA keys for faster first request
-  sdk.console.log("Pre-initializing RSA keys...");
-  initializeRSAKeys();
-  sdk.console.log("RSA keys ready");
-
-  // Settings API
-  sdk.api.register("getSettings", getSettings);
-  sdk.api.register("updateSettings", updateSettings);
-  sdk.api.register("resetSettings", resetSettings);
-
-  // Interactsh API
-  sdk.api.register("startInteractsh", startInteractsh);
-  sdk.api.register("stopInteractsh", stopInteractsh);
-  sdk.api.register("generateInteractshUrl", generateInteractshUrl);
-  sdk.api.register("getInteractions", getInteractions);
-  sdk.api.register("getNewInteractions", getNewInteractions);
-  sdk.api.register("pollInteractsh", pollInteractsh);
-  sdk.api.register("clearInteractions", clearInteractions);
-  sdk.api.register("deleteInteraction", deleteInteraction);
-  sdk.api.register("deleteInteractions", deleteInteractions);
-  sdk.api.register("getInteractshStatus", getInteractshStatus);
-
-  // URL Management API
-  sdk.api.register("getActiveUrls", getActiveUrls);
-  sdk.api.register("setUrlActive", setUrlActive);
-  sdk.api.register("removeUrl", removeUrl);
-  sdk.api.register("clearUrls", clearUrls);
-
-  // Client Management API
-  sdk.api.register("initializeClients", initializeClients);
-  sdk.api.register("getClientCount", getClientCount);
-
-  // Data Management API
-  sdk.api.register("clearAllData", clearAllData);
-
-  // Filter API
-  sdk.api.register("setFilter", setFilter);
-  sdk.api.register("getFilter", getFilter);
-  sdk.api.register("setFilterEnabled", setFilterEnabled);
-  sdk.api.register("getFilterEnabled", getFilterEnabled);
-
-  // Tag API
-  sdk.api.register("setInteractionTag", setInteractionTag);
-
-  // Selection API
-  sdk.api.register("setSelectedRowId", setSelectedRowId);
-  sdk.api.register("getSelectedRowId", getSelectedRowId);
+  sdk.console.log("QuickSSRF v2.0 initialized");
 }
