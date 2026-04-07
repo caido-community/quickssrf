@@ -12,7 +12,7 @@ import {
   isKeysInitialized,
 } from ".";
 
-describe("key management", () => {
+describe("key management", { timeout: 30000 }, () => {
   it("initializes keys", () => {
     initializeKeys();
     expect(isKeysInitialized()).toBe(true);

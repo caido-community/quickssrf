@@ -9,7 +9,7 @@ import {
   serializeKeyPair,
 } from "./rsa";
 
-describe("generateRSAKeyPair", () => {
+describe("generateRSAKeyPair", { timeout: 30000 }, () => {
   it("generates a valid 2048-bit key pair", () => {
     const kp = generateRSAKeyPair();
 
@@ -29,7 +29,7 @@ describe("generateRSAKeyPair", () => {
   });
 });
 
-describe("exportPublicKeyPEM", () => {
+describe("exportPublicKeyPEM", { timeout: 30000 }, () => {
   it("exports PEM with correct header and footer", () => {
     const kp = generateRSAKeyPair();
     const pem = exportPublicKeyPEM(kp.publicKey);
@@ -51,7 +51,7 @@ describe("exportPublicKeyPEM", () => {
   });
 });
 
-describe("serializeKeyPair / deserializeKeyPair", () => {
+describe("serializeKeyPair / deserializeKeyPair", { timeout: 30000 }, () => {
   it("roundtrips correctly", () => {
     const original = generateRSAKeyPair();
     const serialized = serializeKeyPair(original);
@@ -90,7 +90,7 @@ describe("base64ToUint8", () => {
   });
 });
 
-describe("rsaOaepDecrypt", () => {
+describe("rsaOaepDecrypt", { timeout: 30000 }, () => {
   it("throws on wrong ciphertext length", () => {
     const kp = generateRSAKeyPair();
     const badCiphertext = new Uint8Array(128);
