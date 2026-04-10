@@ -18,6 +18,8 @@ const activeSessions = new Map<string, ProviderSession>();
 const RSA_KEY_STORAGE = "RSA_KEYPAIR";
 
 export async function restoreSessions(): Promise<void> {
+  activeSessions.clear();
+
   await ensureKeysWithStorage(
     () => secretStore.get(RSA_KEY_STORAGE),
     (data) => secretStore.set(RSA_KEY_STORAGE, data),

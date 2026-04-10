@@ -1,6 +1,12 @@
 import { Blob, fetch } from "caido:http";
-import type { Interaction, InteractionProtocol, Result } from "shared";
-import { err, ok } from "shared";
+import {
+  err,
+  type Interaction,
+  INTERACTION_PROTOCOLS,
+  type InteractionProtocol,
+  ok,
+  type Result,
+} from "shared";
 
 import {
   decryptMessage,
@@ -31,6 +37,15 @@ type PollResponse = {
   aes_key: string;
 };
 
+const VALID_PROTOCOLS = new Set<string>(INTERACTION_PROTOCOLS);
+
+function toProtocol(value: string | undefined): InteractionProtocol {
+  const normalized = (value ?? "unknown").toLowerCase();
+  return VALID_PROTOCOLS.has(normalized)
+    ? (normalized as InteractionProtocol)
+    : "unknown";
+}
+
 function parseOrigin(serverUrl: string): string {
   // eslint-disable-next-line compat/compat
   const url = new URL(serverUrl);
@@ -51,7 +66,7 @@ function toInteraction(
     id: `${raw["full-id"]}-${raw.timestamp}-${raw["remote-address"] ?? ""}-${raw.protocol}`,
     sessionId,
     index,
-    protocol: (raw.protocol ?? "unknown") as InteractionProtocol,
+    protocol: toProtocol(raw.protocol),
     rawRequest: raw["raw-request"] ?? "",
     rawResponse: raw["raw-response"] ?? "",
     remoteAddress: raw["remote-address"] ?? "",

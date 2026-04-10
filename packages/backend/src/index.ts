@@ -1,5 +1,4 @@
-import type { DefineAPI, DefineEvents, SDK } from "caido:plugin";
-import type { BackendEventMap } from "shared";
+import type { DefineAPI, SDK } from "caido:plugin";
 
 import {
   apiAddProvider,
@@ -28,7 +27,7 @@ import {
 import { setSDK } from "./sdk";
 import { restartPolling, restoreSessions, startPolling } from "./services";
 import { configStore, providerStore } from "./stores";
-import type { BackendEvents as BackendEventsType } from "./types";
+import type { BackendEvents } from "./types";
 
 export type API = DefineAPI<{
   createSession: typeof apiCreateSession;
@@ -59,9 +58,9 @@ export type API = DefineAPI<{
   getPollingStatus: typeof apiGetPollingStatus;
 }>;
 
-export type BackendEvents = DefineEvents<BackendEventMap>;
+export type { BackendEvents } from "./types";
 
-export async function init(sdk: SDK<API, BackendEventsType>) {
+export async function init(sdk: SDK<API, BackendEvents>) {
   setSDK(sdk);
 
   await configStore.initialize();
