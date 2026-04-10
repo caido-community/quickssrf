@@ -1,148 +1,84 @@
 <script setup lang="ts">
 import Button from "primevue/button";
-import ContextMenu from "primevue/contextmenu";
-import Splitter from "primevue/splitter";
-import SplitterPanel from "primevue/splitterpanel";
-import Tooltip from "primevue/tooltip";
-import { onMounted, onUnmounted, toRef } from "vue";
+import ConfirmDialog from "primevue/confirmdialog";
+import MenuBar from "primevue/menubar";
+import { useConfirm } from "primevue/useconfirm";
+import { onMounted } from "vue";
 
-import ActionBar from "@/components/ActionBar.vue";
-import FilterBar from "@/components/FilterBar.vue";
-import PayloadTable from "@/components/PayloadTable.vue";
-import { useLogic } from "@/composables/useLogic";
-import { useInteractionStore } from "@/stores/interactionStore";
-import { useUIStore } from "@/stores/uiStore";
+import { useAppNavigation } from "@/composables/useAppNavigation";
+import { useSessionsService } from "@/services/sessions";
+import { useConfigStore } from "@/stores/config";
+import { useProvidersStore } from "@/stores/providers";
 
-const vTooltip = Tooltip;
-const {
-  requestEl,
-  responseEl,
-  contextMenuRef,
-  initializeEditors,
-  copySelectedText,
-} = useLogic();
+const { navItems, component } = useAppNavigation();
+const confirm = useConfirm();
 
-const contextMenuItems = [
-  {
-    label: "Copy",
-    icon: "fas fa-copy",
-    command: () => copySelectedText(),
-  },
-];
+const sessionsService = useSessionsService();
+const configStore = useConfigStore();
+const providersStore = useProvidersStore();
 
-const uiStore = useUIStore();
-const interactionStore = useInteractionStore();
-const selectedRow = toRef(uiStore, "selectedRow");
-const openGitHub = () => {
-  window.open("https://github.com/caido-community/quickssrf", "_blank");
+const handleLabel = (
+  label: string | ((...args: unknown[]) => string) | undefined,
+) => {
+  if (typeof label === "function") {
+    return label();
+  }
+  return label;
 };
 
-let dataChangeSubscription: { stop: () => void } | undefined;
-let urlGeneratedSubscription: { stop: () => void } | undefined;
-let filterChangedSubscription: { stop: () => void } | undefined;
-let filterEnabledChangedSubscription: { stop: () => void } | undefined;
-let rowSelectedSubscription: { stop: () => void } | undefined;
+const onClearAll = () => {
+  confirm.require({
+    message:
+      "This will delete all sessions and their interactions. This action cannot be undone.",
+    header: "Clear All Sessions",
+    icon: "fas fa-exclamation-triangle",
+    acceptLabel: "Delete All",
+    rejectLabel: "Cancel",
+    accept: () => {
+      sessionsService.clearAllSessions();
+    },
+  });
+};
 
-onMounted(async () => {
-  initializeEditors();
-  // Load persisted data from backend
-  await interactionStore.loadPersistedData();
-  // Load filter from backend
-  await interactionStore.loadFilter();
-  // Subscribe to backend events
-  dataChangeSubscription = interactionStore.subscribeToDataChanges();
-  urlGeneratedSubscription = interactionStore.subscribeToUrlGenerated();
-  filterChangedSubscription = interactionStore.subscribeToFilterChanged();
-  filterEnabledChangedSubscription =
-    interactionStore.subscribeToFilterEnabledChanged();
-  rowSelectedSubscription = uiStore.subscribeToRowSelected(
-    interactionStore.findInteractionById,
-  );
-});
-
-onUnmounted(() => {
-  // Clean up subscriptions
-  if (dataChangeSubscription) {
-    dataChangeSubscription.stop();
-  }
-  if (urlGeneratedSubscription) {
-    urlGeneratedSubscription.stop();
-  }
-  if (filterChangedSubscription) {
-    filterChangedSubscription.stop();
-  }
-  if (filterEnabledChangedSubscription) {
-    filterEnabledChangedSubscription.stop();
-  }
-  if (rowSelectedSubscription) {
-    rowSelectedSubscription.stop();
-  }
+onMounted(() => {
+  sessionsService.initialize();
+  configStore.initialize();
+  providersStore.initialize();
 });
 </script>
+
 <template>
-  <Splitter class="h-full" layout="vertical">
-    <!-- Top: controls & table -->
-    <SplitterPanel class="flex-1 min-h-0" :min-size="30">
-      <div
-        class="h-full rounded-md shadow-md bg-surface-0 dark:bg-surface-800 text-surface-700 dark:text-surface-0 flex flex-col"
-      >
-        <!-- Header -->
-        <header
-          class="p-4 flex justify-between items-center border-b border-surface-200 dark:border-surface-700"
-        >
-          <h1 class="text-2xl font-semibold">QuickSSRF</h1>
-          <Button
-            v-tooltip="'Support the project on GitHub'"
-            label="Star on GitHub"
-            icon="fas fa-star star-icon"
-            class="font-medium"
-            @click="openGitHub"
-          />
-        </header>
+  <div class="h-full flex flex-col gap-1">
+    <ConfirmDialog />
+    <MenuBar :model="navItems" class="h-12 gap-2">
+      <template #start>
+        <div class="px-2 font-bold">QuickSSRF</div>
+      </template>
 
-        <!-- Controls -->
-        <div class="p-4 flex flex-col gap-3">
-          <ActionBar />
-          <FilterBar />
-        </div>
+      <template #item="{ item }">
+        <Button
+          :severity="item.isActive?.() ? 'secondary' : 'contrast'"
+          :outlined="item.isActive?.()"
+          size="small"
+          :text="!item.isActive?.()"
+          :label="handleLabel(item.label)"
+          @click="item.command?.()"
+        />
+      </template>
 
-        <!-- Table -->
-        <div class="flex-1 min-h-0 overflow-auto">
-          <PayloadTable />
-        </div>
-      </div>
-    </SplitterPanel>
-
-    <!-- Bottom: editors -->
-    <SplitterPanel class="flex-1 min-h-0">
-      <!-- Empty state card -->
-      <div
-        class="h-full w-full flex flex-col justify-center items-center bg-surface-0 dark:bg-surface-800 text-surface-700 dark:text-surface-0 rounded-md shadow-md"
-        :style="{ display: selectedRow ? 'none' : 'flex' }"
-      >
-        <i class="fas fa-code text-surface-300 text-4xl mb-3"></i>
-        <p class="text-surface-400 text-center">
-          Select an interaction to view request and response details
-        </p>
-      </div>
-
-      <!-- Editors -->
-      <div class="h-full flex flex-col">
-        <Splitter
-          class="h-full"
-          :style="{ display: selectedRow ? 'flex' : 'none' }"
-        >
-          <SplitterPanel class="flex-1 min-h-0">
-            <div ref="requestEl" class="h-full overflow-auto"></div>
-          </SplitterPanel>
-          <SplitterPanel class="flex-1 min-h-0">
-            <div ref="responseEl" class="h-full overflow-auto"></div>
-          </SplitterPanel>
-        </Splitter>
-      </div>
-    </SplitterPanel>
-  </Splitter>
-
-  <!-- Context menu for editors -->
-  <ContextMenu ref="contextMenuRef" :model="contextMenuItems" />
+      <template #end>
+        <Button
+          label="Clear All"
+          icon="fas fa-trash"
+          severity="danger"
+          text
+          size="small"
+          @click="onClearAll"
+        />
+      </template>
+    </MenuBar>
+    <div class="flex-1 min-h-0">
+      <component :is="component" />
+    </div>
+  </div>
 </template>

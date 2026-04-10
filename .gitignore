@@ -1,2 +1,6 @@
 node_modules
 dist
+.DS_Store
+plugin_package.zip
+coverage
+*.tsbuildinfo

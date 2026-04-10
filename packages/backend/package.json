@@ -1,18 +1,16 @@
 {
   "name": "backend",
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "types": "src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "devDependencies": {
-    "@caido/quickjs-types": "^0.17.2",
-    "@caido/sdk-backend": "0.47.1",
-    "@types/node": "^22.13.11",
-    "shared": "workspace:*"
-  },
   "dependencies": {
     "shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@caido/sdk-backend": "0.55.3"
   }
 }

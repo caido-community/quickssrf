@@ -1,8 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "types": ["@caido/sdk-backend"],
-    //"strictPropertyInitialization": false
+    "types": ["@caido/sdk-backend"]
   },
   "include": ["./src/**/*.ts"]
 }
