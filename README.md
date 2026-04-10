@@ -48,5 +48,7 @@ Out-of-Band (OOB) interaction monitoring with multi-provider OAST support. Gener
 
 Contributions are welcome! Please feel free to submit issues and enhancement requests.
 
-> Originally created by [w2xim3](https://github.com/w2xim3).
+## Acknowledgment
+
+Originally created by [w2xim3](https://github.com/w2xim3).
 
