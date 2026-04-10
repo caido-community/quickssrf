@@ -42,7 +42,6 @@ Out-of-Band (OOB) interaction monitoring with multi-provider OAST support. Gener
 3. Install in Caido:
    - Upload the `plugin_package.zip` file by clicking "Install Package" in Caido's plugins tab.
 
-## Development
 
 ## 🤝 Contributing
 
