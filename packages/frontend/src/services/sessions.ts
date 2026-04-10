@@ -11,6 +11,7 @@ export const useSessionsService = defineStore("services.sessions", () => {
   const store = useSessionsStore();
   const notificationsService = useNotificationsService();
   const interactions = ref<Interaction[]>([]);
+  let initialized = false;
 
   const getState = () => store.getState();
 
@@ -24,14 +25,8 @@ export const useSessionsService = defineStore("services.sessions", () => {
   });
 
   const initialize = async () => {
-    store.send({ type: "Start" });
-    const result = await sdk.backend.getSessions();
-
-    if (result.kind === "Ok") {
-      store.send({ type: "Success", sessions: result.value });
-    } else {
-      store.send({ type: "Error", error: result.error });
-    }
+    if (initialized) return;
+    initialized = true;
 
     sdk.backend.onEvent("session:created", (session) => {
       store.send({ type: "AddSession", session });
@@ -74,6 +69,15 @@ export const useSessionsService = defineStore("services.sessions", () => {
         selectedId,
       );
     });
+
+    store.send({ type: "Start" });
+    const result = await sdk.backend.getSessions();
+
+    if (result.kind === "Ok") {
+      store.send({ type: "Success", sessions: result.value });
+    } else {
+      store.send({ type: "Error", error: result.error });
+    }
   };
 
   const createSession = async (providerId?: string) => {
@@ -92,10 +96,10 @@ export const useSessionsService = defineStore("services.sessions", () => {
 
   const selectSession = async (sessionId: string) => {
     store.selectionState.select(sessionId);
-    notificationsService.markSeen(sessionId);
     const result = await sdk.backend.getInteractions(sessionId);
     if (result.kind === "Ok") {
       interactions.value = result.value;
+      notificationsService.markSeen(sessionId);
     }
   };
 
@@ -149,14 +153,26 @@ export const useSessionsService = defineStore("services.sessions", () => {
     const state = store.getState();
     if (state.type !== "Success") return;
 
+    const errors: string[] = [];
     for (const session of [...state.sessions]) {
-      await sdk.backend.deleteSession(session.id);
+      const result = await sdk.backend.deleteSession(session.id);
+      if (result.kind === "Error") {
+        errors.push(result.error);
+      }
     }
 
     store.selectionState.reset();
     interactions.value = [];
     notificationsService.clearAll();
-    sdk.window.showToast("All sessions cleared", { variant: "success" });
+
+    if (errors.length > 0) {
+      sdk.window.showToast(
+        `Cleared with ${errors.length} error(s): ${errors[0]}`,
+        { variant: "warning" },
+      );
+    } else {
+      sdk.window.showToast("All sessions cleared", { variant: "success" });
+    }
   };
 
   return {

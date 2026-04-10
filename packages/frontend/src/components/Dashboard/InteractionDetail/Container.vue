@@ -15,27 +15,21 @@ const responseEl = ref<HTMLElement>();
 let requestEditorView: EditorView | undefined;
 let responseEditorView: EditorView | undefined;
 
+function setEditorContent(view: EditorView | undefined, content: string) {
+  if (view === undefined) return;
+  if (
+    view.state.doc.length === content.length &&
+    view.state.doc.toString() === content
+  )
+    return;
+  view.dispatch({
+    changes: { from: 0, to: view.state.doc.length, insert: content },
+  });
+}
+
 function updateEditors(interaction: Interaction | undefined) {
-  if (requestEditorView !== undefined) {
-    const content = interaction?.rawRequest ?? "";
-    requestEditorView.dispatch({
-      changes: {
-        from: 0,
-        to: requestEditorView.state.doc.length,
-        insert: content,
-      },
-    });
-  }
-  if (responseEditorView !== undefined) {
-    const content = interaction?.rawResponse ?? "";
-    responseEditorView.dispatch({
-      changes: {
-        from: 0,
-        to: responseEditorView.state.doc.length,
-        insert: content,
-      },
-    });
-  }
+  setEditorContent(requestEditorView, interaction?.rawRequest ?? "");
+  setEditorContent(responseEditorView, interaction?.rawResponse ?? "");
 }
 
 onMounted(() => {

@@ -22,13 +22,17 @@ const sessions = computed(() => {
 
 const selectedId = computed(() => sessionsService.selectedSession?.id);
 
+const enabledProviders = computed(() =>
+  providersStore.providers.filter((p) => p.enabled),
+);
+
+const hasEnabledProviders = computed(() => enabledProviders.value.length > 0);
+
 const providerMenuItems = computed(() =>
-  providersStore.providers
-    .filter((p) => p.enabled)
-    .map((p) => ({
-      label: p.name,
-      command: () => sessionsService.createSession(p.id),
-    })),
+  enabledProviders.value.map((p) => ({
+    label: p.name,
+    command: () => sessionsService.createSession(p.id),
+  })),
 );
 
 const handleTabSelect = (sessionId: string) => {
@@ -73,6 +77,7 @@ const handleNewSession = () => {
         <SplitButton
           icon="fas fa-plus"
           size="small"
+          :disabled="!hasEnabledProviders"
           :model="providerMenuItems"
           @click="handleNewSession"
         />

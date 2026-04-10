@@ -26,7 +26,7 @@ import {
   apiUpdateSessionTitle,
 } from "./api";
 import { setSDK } from "./sdk";
-import { restoreSessions, startPolling } from "./services";
+import { restartPolling, restoreSessions, startPolling } from "./services";
 import { configStore, providerStore } from "./stores";
 import type { BackendEvents as BackendEventsType } from "./types";
 
@@ -98,6 +98,7 @@ export async function init(sdk: SDK<API, BackendEventsType>) {
     await configStore.initialize();
     await providerStore.initialize();
     await restoreSessions();
+    restartPolling();
   });
 
   await restoreSessions();

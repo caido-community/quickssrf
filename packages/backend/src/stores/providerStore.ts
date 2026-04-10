@@ -74,6 +74,14 @@ class ProviderStoreClass {
 
     const current = this.data[index]!;
     const updated: Provider = { ...current, ...result.data };
+
+    if (current.enabled && updated.enabled === false) {
+      const enabledCount = this.data.filter((p) => p.enabled).length;
+      if (enabledCount <= 1) {
+        throw new Error("Cannot disable the last enabled provider");
+      }
+    }
+
     this.data[index] = updated;
     await this.save();
 
@@ -85,6 +93,9 @@ class ProviderStoreClass {
   async deleteProvider(id: string): Promise<void> {
     const index = this.data.findIndex((p) => p.id === id);
     if (index === -1) throw new ProviderNotFoundError(id);
+    if (this.data.length === 1) {
+      throw new Error("Cannot delete the last provider");
+    }
 
     this.data.splice(index, 1);
     await this.save();

@@ -123,18 +123,41 @@ describe("providerStore", () => {
         providerStore.updateProvider("unknown", { name: "test" }),
       ).rejects.toThrow("Provider not found");
     });
+
+    it("throws when disabling the last enabled provider", async () => {
+      await providerStore.initialize();
+      const providers = providerStore.getProviders();
+      await expect(
+        providerStore.updateProvider(providers[0]!.id, { enabled: false }),
+      ).rejects.toThrow("Cannot disable the last enabled provider");
+    });
   });
 
   describe("deleteProvider", () => {
     it("removes provider and emits event", async () => {
       await providerStore.initialize();
+      await providerStore.addProvider({
+        name: "Extra",
+        kind: "interactsh",
+        url: "https://extra.oast.site",
+        enabled: true,
+      });
+
       const providers = providerStore.getProviders();
       const id = providers[0]!.id;
 
       await providerStore.deleteProvider(id);
 
-      expect(providerStore.getProviders().length).toBe(0);
+      expect(providerStore.getProviders().length).toBe(1);
       expect(mockSdk.api.send).toHaveBeenCalledWith("provider:deleted", id);
+    });
+
+    it("throws when deleting the last provider", async () => {
+      await providerStore.initialize();
+      const providers = providerStore.getProviders();
+      await expect(
+        providerStore.deleteProvider(providers[0]!.id),
+      ).rejects.toThrow("Cannot delete the last provider");
     });
 
     it("throws for unknown provider", async () => {

@@ -124,6 +124,13 @@ export const interactshProvider: OASTProvider = {
 
   async poll(session: ProviderSession): Promise<Result<Interaction[]>> {
     try {
+      if (
+        session.correlationId === undefined ||
+        session.secretKey === undefined
+      ) {
+        return err("Missing session credentials (correlationId or secretKey)");
+      }
+
       const origin = parseOrigin(session.serverUrl);
       const url = `${origin}/poll?id=${session.correlationId}&secret=${session.secretKey}`;
 
@@ -159,6 +166,13 @@ export const interactshProvider: OASTProvider = {
 
   async deregister(session: ProviderSession): Promise<Result<void>> {
     try {
+      if (
+        session.correlationId === undefined ||
+        session.secretKey === undefined
+      ) {
+        return err("Missing session credentials (correlationId or secretKey)");
+      }
+
       const origin = parseOrigin(session.serverUrl);
 
       const resp = await fetch(`${origin}/deregister`, {

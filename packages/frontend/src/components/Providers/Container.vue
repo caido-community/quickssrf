@@ -10,7 +10,7 @@ import {
   type ProviderKind,
   QUICK_ADD_PRESETS,
 } from "shared";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 
 import ProviderDialog from "./ProviderDialog.vue";
 
@@ -22,6 +22,11 @@ const showDialog = ref(false);
 const editMode = ref(false);
 const editingId = ref<string | undefined>(undefined);
 const dialogRef = ref<InstanceType<typeof ProviderDialog>>();
+
+const enabledCount = computed(
+  () => providersStore.providers.filter((p) => p.enabled).length,
+);
+const isLastProvider = computed(() => providersStore.providers.length <= 1);
 
 const presetUrls = new Set(QUICK_ADD_PRESETS.map((p) => p.url));
 const isCustomProvider = (provider: Provider) => !presetUrls.has(provider.url);
@@ -113,6 +118,7 @@ defineExpose({ openCustomDialog });
         <template #body="{ data }">
           <ToggleSwitch
             :model-value="data.enabled"
+            :disabled="data.enabled && enabledCount <= 1"
             @update:model-value="onToggleEnabled(data.id, $event)"
           />
         </template>
@@ -136,6 +142,7 @@ defineExpose({ openCustomDialog });
             severity="danger"
             text
             size="small"
+            :disabled="isLastProvider"
             @click="onDelete(data.id)"
           />
         </template>
