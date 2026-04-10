@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { ProviderKindSchema } from "./provider";
+
 export const SESSION_STATUSES = [
   "active",
   "polling",
@@ -14,7 +16,7 @@ export type SessionStatus = z.infer<typeof SessionStatusSchema>;
 export const SessionSchema = z.object({
   id: z.string(),
   providerId: z.string(),
-  providerKind: z.string(),
+  providerKind: ProviderKindSchema,
   title: z.string(),
   url: z.string(),
   status: SessionStatusSchema,

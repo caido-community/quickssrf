@@ -5,10 +5,12 @@ import { computed } from "vue";
 
 import Tab from "./Tab.vue";
 
+import { useNotificationsService } from "@/services/notifications";
 import { useSessionsService } from "@/services/sessions";
 import { useProvidersStore } from "@/stores/providers";
 
 const sessionsService = useSessionsService();
+const notificationsService = useNotificationsService();
 const providersStore = useProvidersStore();
 
 const state = computed(() => sessionsService.getState());
@@ -62,6 +64,7 @@ const handleNewSession = () => {
           :is-selected="selectedId === session.id"
           :label="session.title"
           :status="session.status"
+          :badge="notificationsService.getUnseenCount(session.id)"
           @select="handleTabSelect(session.id)"
           @rename="(newName) => handleRename(session.id, newName)"
           @delete="handleDelete(session.id)"

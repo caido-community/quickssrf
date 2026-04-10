@@ -98,7 +98,11 @@ defineExpose({ setForm });
 
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium">Token (optional)</label>
-        <InputText v-model="form.token" placeholder="auth-token" />
+        <InputText
+          v-model="form.token"
+          placeholder="auth-token"
+          type="password"
+        />
       </div>
 
       <div class="flex items-center justify-between">

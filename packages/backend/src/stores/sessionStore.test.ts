@@ -16,7 +16,7 @@ const { sessionStore } = await import("./sessionStore");
 const makeSession = (id: string, status = "active" as const) => ({
   id,
   providerId: "p-1",
-  providerKind: "interactsh",
+  providerKind: "interactsh" as const,
   title: `Session ${id}`,
   url: `https://${id}.oast.site`,
   status,

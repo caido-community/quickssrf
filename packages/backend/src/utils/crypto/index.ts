@@ -90,8 +90,9 @@ export async function ensureKeysWithStorage(
     } catch {}
   }
 
-  keyPair = generateRSAKeyPair();
-  await saveFn(JSON.stringify(serializeKeyPair(keyPair)));
+  const generated = generateRSAKeyPair();
+  await saveFn(JSON.stringify(serializeKeyPair(generated)));
+  keyPair = generated;
 }
 
 export function generateRandomString(length: number): string {

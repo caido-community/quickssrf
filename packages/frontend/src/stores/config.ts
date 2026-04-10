@@ -7,8 +7,12 @@ import { useSDK } from "@/plugins/sdk";
 export const useConfigStore = defineStore("stores.config", () => {
   const sdk = useSDK();
   const data = ref<QuickSSRFConfig | undefined>(undefined);
+  let initialized = false;
 
   const initialize = async () => {
+    if (initialized) return;
+    initialized = true;
+
     await load();
 
     sdk.backend.onEvent("config:updated", (config) => {

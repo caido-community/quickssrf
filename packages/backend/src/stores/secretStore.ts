@@ -5,7 +5,8 @@ const ENV_PREFIX = "QUICKSSRF_";
 class SecretStoreClass {
   get(key: string): string | undefined {
     const sdk = requireSDK();
-    return sdk.env.getVar(`${ENV_PREFIX}${key}`) ?? undefined;
+    const value = sdk.env.getVar(`${ENV_PREFIX}${key}`);
+    return value === undefined || value === "" ? undefined : value;
   }
 
   async set(key: string, value: string): Promise<void> {

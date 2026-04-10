@@ -3,11 +3,13 @@ import type { Interaction } from "shared";
 import { computed, ref } from "vue";
 
 import { useSDK } from "@/plugins/sdk";
+import { useNotificationsService } from "@/services/notifications";
 import { useSessionsStore } from "@/stores/sessions";
 
 export const useSessionsService = defineStore("services.sessions", () => {
   const sdk = useSDK();
   const store = useSessionsStore();
+  const notificationsService = useNotificationsService();
   const interactions = ref<Interaction[]>([]);
 
   const getState = () => store.getState();
@@ -41,6 +43,7 @@ export const useSessionsService = defineStore("services.sessions", () => {
 
     sdk.backend.onEvent("session:deleted", (sessionId) => {
       store.send({ type: "DeleteSession", sessionId });
+      notificationsService.markSeen(sessionId);
       if (store.selectionState.getState() === sessionId) {
         store.selectionState.reset();
         interactions.value = [];
@@ -48,7 +51,9 @@ export const useSessionsService = defineStore("services.sessions", () => {
     });
 
     sdk.backend.onEvent("interaction:received", (data) => {
-      if (data.sessionId === store.selectionState.getState()) {
+      const selectedId = store.selectionState.getState();
+
+      if (data.sessionId === selectedId) {
         const existingKeys = new Set(
           interactions.value.map(
             (i) => `${i.uniqueId}:${i.timestamp}:${i.protocol}`,
@@ -62,6 +67,12 @@ export const useSessionsService = defineStore("services.sessions", () => {
           interactions.value = [...interactions.value, ...newOnes];
         }
       }
+
+      notificationsService.onInteractionsReceived(
+        data.sessionId,
+        data.interactions.length,
+        selectedId,
+      );
     });
   };
 
@@ -81,6 +92,7 @@ export const useSessionsService = defineStore("services.sessions", () => {
 
   const selectSession = async (sessionId: string) => {
     store.selectionState.select(sessionId);
+    notificationsService.markSeen(sessionId);
     const result = await sdk.backend.getInteractions(sessionId);
     if (result.kind === "Ok") {
       interactions.value = result.value;
@@ -143,6 +155,7 @@ export const useSessionsService = defineStore("services.sessions", () => {
 
     store.selectionState.reset();
     interactions.value = [];
+    notificationsService.clearAll();
     sdk.window.showToast("All sessions cleared", { variant: "success" });
   };
 

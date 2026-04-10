@@ -97,6 +97,7 @@ export async function init(sdk: SDK<API, BackendEventsType>) {
   sdk.events.onProjectChange(async () => {
     await configStore.initialize();
     await providerStore.initialize();
+    await restoreSessions();
   });
 
   await restoreSessions();

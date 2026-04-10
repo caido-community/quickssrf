@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useDebounceFn, whenever } from "@vueuse/core";
+import Badge from "primevue/badge";
 import Button from "primevue/button";
 import ContextMenu from "primevue/contextmenu";
 import { nextTick, ref } from "vue";
@@ -12,6 +13,7 @@ const props = defineProps<{
   isSelected: boolean;
   label: string;
   status: string;
+  badge: number;
 }>();
 
 const emit = defineEmits<{
@@ -103,6 +105,13 @@ const onSubmit = useDebounceFn(() => {
           </div>
         </template>
         <span v-else class="px-1 whitespace-nowrap text-sm">{{ label }}</span>
+
+        <Badge
+          v-if="props.badge > 0"
+          :value="props.badge"
+          severity="danger"
+          class="!min-w-5 !h-5 !text-xs !flex !items-center !justify-center !leading-none"
+        />
       </div>
     </Button>
 

@@ -9,8 +9,12 @@ export async function apiGetInteractions(
   _sdk: SDK,
   sessionId: string,
 ): Promise<Result<Interaction[]>> {
-  const interactions = await sessionStore.getInteractions(sessionId);
-  return { kind: "Ok", value: interactions };
+  try {
+    const interactions = await sessionStore.getInteractions(sessionId);
+    return { kind: "Ok", value: interactions };
+  } catch (e) {
+    return err(getErrorMessage(e));
+  }
 }
 
 export async function apiDeleteInteraction(

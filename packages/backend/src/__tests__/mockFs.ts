@@ -10,12 +10,22 @@ export function createMockFs() {
     readFile: vi.fn((path: string) => {
       const content = fileSystem.get(path);
       if (content === undefined) {
-        return Promise.reject(new Error(`ENOENT: ${path}`));
+        const err = new Error(`ENOENT: ${path}`) as Error & { code: string };
+        err.code = "ENOENT";
+        return Promise.reject(err);
       }
       return Promise.resolve(content);
     }),
     writeFile: vi.fn((path: string, data: string) => {
       fileSystem.set(path, data);
+      return Promise.resolve();
+    }),
+    rename: vi.fn((oldPath: string, newPath: string) => {
+      const content = fileSystem.get(oldPath);
+      if (content !== undefined) {
+        fileSystem.set(newPath, content);
+        fileSystem.delete(oldPath);
+      }
       return Promise.resolve();
     }),
     readdir: vi.fn((path: string) => {

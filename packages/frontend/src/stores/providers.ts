@@ -8,8 +8,12 @@ export const useProvidersStore = defineStore("stores.providers", () => {
   const sdk = useSDK();
   const providers = ref<Provider[]>([]);
   const loading = ref(false);
+  let initialized = false;
 
   const initialize = async () => {
+    if (initialized) return;
+    initialized = true;
+
     await load();
 
     sdk.backend.onEvent("provider:created", (provider) => {

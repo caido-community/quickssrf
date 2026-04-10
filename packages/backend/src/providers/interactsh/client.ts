@@ -84,9 +84,7 @@ export const interactshProvider: OASTProvider = {
       const correlationId = generateRandomString(
         options.correlationIdLength ?? 20,
       );
-      const secretKey = generateRandomString(
-        options.correlationIdNonceLength ?? 13,
-      );
+      const secretKey = generateRandomString(32);
 
       const resp = await fetch(`${origin}/register`, {
         method: "POST",

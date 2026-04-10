@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EditorView } from "@codemirror/view";
 import type { Interaction } from "shared";
-import { onMounted, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import { useSDK } from "@/plugins/sdk";
 
@@ -55,6 +55,13 @@ onMounted(() => {
 });
 
 watch(() => props.interaction, updateEditors);
+
+onBeforeUnmount(() => {
+  requestEditorView?.destroy();
+  responseEditorView?.destroy();
+  requestEditorView = undefined;
+  responseEditorView = undefined;
+});
 </script>
 
 <template>

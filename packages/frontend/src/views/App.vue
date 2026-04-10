@@ -62,7 +62,7 @@ onMounted(() => {
           size="small"
           :text="!item.isActive?.()"
           :label="handleLabel(item.label)"
-          @mousedown="item.command?.()"
+          @click="item.command?.()"
         />
       </template>
 
