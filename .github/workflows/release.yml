@@ -69,5 +69,6 @@ jobs:
 
       - name: Publish package
         run: |
+          pnpm run build:shared
           npm pkg set "version=${{ steps.meta.outputs.version }}" --prefix packages/shared
           pnpm --filter @caido-community/quickssrf publish --access public --no-git-checks
