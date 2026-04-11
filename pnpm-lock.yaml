@@ -76,9 +76,6 @@ importers:
       '@caido/sdk-frontend':
         specifier: 0.56.1-beta.1
         version: 0.56.1-beta.1(@ai-sdk/provider@3.0.8)(@codemirror/state@6.6.0)(@codemirror/view@6.38.5)(vue@3.5.22(typescript@5.5.4))
-      '@caido/sdk-shared':
-        specifier: 0.2.0
-        version: 0.2.0
       '@codemirror/view':
         specifier: 6.38.5
         version: 6.38.5
@@ -92,8 +89,8 @@ importers:
   packages/shared:
     dependencies:
       '@caido/sdk-shared':
-        specifier: 0.2.0
-        version: 0.2.0
+        specifier: 0.2.1
+        version: 0.2.1
       zod:
         specifier: 4.3.6
         version: 4.3.6
@@ -160,6 +157,9 @@ packages:
 
   '@caido/sdk-shared@0.2.0':
     resolution: {integrity: sha512-pgzwCZSu9R7ggOQvnmspxcZ79plCrzWZ3jcv1t4ahqdov8D5Kl0GWNQsO7oj/Bve4vH/spOR3XZefCRCDhcjbw==}
+
+  '@caido/sdk-shared@0.2.1':
+    resolution: {integrity: sha512-pxioQ/SISu/Kd+dSur36ri5FXfFXEJShuq10CAZnHqV0L/x6vmXyIsJjTf9m0b7lrMmPnr6WncB/JWMSaVT1wA==}
 
   '@caido/tailwindcss@0.0.1':
     resolution: {integrity: sha512-BGp7s8BiZv6eBV8x/j0t5nPBVKP7Bm+gJVY4APcFgFkNkrRSRDo0VuXN52OhiHc/+vTg85lrmLO8IWMM5bcJrQ==}
@@ -2854,6 +2854,8 @@ snapshots:
       vue: 3.5.22(typescript@5.5.4)
 
   '@caido/sdk-shared@0.2.0': {}
+
+  '@caido/sdk-shared@0.2.1': {}
 
   '@caido/tailwindcss@0.0.1':
     dependencies:

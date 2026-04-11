@@ -16,7 +16,6 @@
   },
   "devDependencies": {
     "@caido/sdk-frontend": "0.56.1-beta.1",
-    "@caido/sdk-shared": "0.2.0",
     "@codemirror/view": "6.38.5",
     "backend": "workspace:*",
     "vue-tsc": "3.1.1"

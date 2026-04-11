@@ -1,4 +1,4 @@
-import type { DefinePluginPackageSpec } from "caido:plugin";
+import type { DefinePluginPackageSpec } from "@caido/sdk-shared";
 
 import type { API } from "./api";
 import type { Events } from "./events";
