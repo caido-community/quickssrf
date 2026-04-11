@@ -79,9 +79,6 @@ importers:
       '@codemirror/view':
         specifier: 6.38.5
         version: 6.38.5
-      backend:
-        specifier: workspace:*
-        version: link:../backend
       vue-tsc:
         specifier: 3.1.1
         version: 3.1.1(typescript@5.5.4)
