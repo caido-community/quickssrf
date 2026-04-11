@@ -1,7 +1,6 @@
 {
-  "name": "shared",
+  "name": "@caido-community/quickssrf",
   "version": "0.0.0",
-  "private": true,
   "type": "module",
   "types": "src/index.ts",
   "main": "src/index.ts",
@@ -9,6 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@caido/sdk-shared": "0.2.0",
     "zod": "4.3.6"
   }
 }

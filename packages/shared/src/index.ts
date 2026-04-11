@@ -1,3 +1,8 @@
+import type { DefinePluginPackageSpec } from "caido:plugin";
+
+import type { API } from "./api";
+import type { Events } from "./events";
+
 export { type Result, ok, err } from "./result";
 
 export {
@@ -40,4 +45,8 @@ export {
   type UpdateConfig,
 } from "./config";
 
-export { type BackendEventMap } from "./events";
+export type Spec = DefinePluginPackageSpec<{
+  manifestId: "quickssrf";
+  api: API;
+  events: Events;
+}>;

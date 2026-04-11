@@ -3,7 +3,7 @@ import type { Interaction } from "./interaction";
 import type { Provider } from "./provider";
 import type { Session } from "./session";
 
-export type BackendEventMap = {
+export type Events = {
   "session:created": (session: Session) => void;
   "session:updated": (session: Session) => void;
   "session:deleted": (sessionId: string) => void;
