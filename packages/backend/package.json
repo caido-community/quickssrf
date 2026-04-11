@@ -8,9 +8,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "shared": "workspace:*"
+    "shared": "workspace:@caido-community/quickssrf@*"
   },
   "devDependencies": {
-    "@caido/sdk-backend": "0.55.3"
+    "@caido/sdk-backend": "0.56.0"
   }
 }

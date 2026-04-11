@@ -9,6 +9,7 @@
     "knip": "knip",
     "test": "vitest run",
     "build": "caido-dev build",
+    "build:shared": "pnpm --filter @caido-community/quickssrf run build",
     "watch": "caido-dev watch"
   },
   "devDependencies": {
