@@ -1,6 +1,7 @@
 {
   "name": "@caido-community/quickssrf",
   "version": "0.0.0",
+  "license": "MIT",
   "type": "module",
   "types": "src/index.ts",
   "main": "src/index.ts",
