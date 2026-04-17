@@ -57,10 +57,12 @@ jobs:
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Publish package
+        working-directory: packages/shared
         run: |
-          pnpm run build:shared
-          npm pkg set "version=${{ steps.meta.outputs.version }}" --prefix packages/shared
-          pnpm --filter @caido-community/quickssrf publish --access public --no-git-checks
+          npm --version
+          pnpm run build
+          npm pkg set "version=${{ steps.meta.outputs.version }}"
+          npm publish --access public --provenance
 
       - name: Create release
         uses: caido/action-release@v1
