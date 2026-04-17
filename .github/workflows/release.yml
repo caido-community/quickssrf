@@ -7,6 +7,10 @@ env:
   NODE_VERSION: 22
   PNPM_VERSION: 9
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   release:
     name: Release
