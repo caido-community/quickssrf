@@ -7,13 +7,16 @@ export function createMockFs() {
   fileSystem.clear();
 
   return {
-    readFile: vi.fn((path: string) => {
-      const content = fileSystem.get(path);
-      if (content === undefined) {
+    access: vi.fn((path: string) => {
+      if (!fileSystem.has(path)) {
         const err = new Error(`ENOENT: ${path}`) as Error & { code: string };
         err.code = "ENOENT";
         return Promise.reject(err);
       }
+      return Promise.resolve();
+    }),
+    readFile: vi.fn((path: string) => {
+      const content = fileSystem.get(path);
       return Promise.resolve(content);
     }),
     writeFile: vi.fn((path: string, data: string) => {
