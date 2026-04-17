@@ -1,19 +1,21 @@
+import path from "path";
+
+import tailwindCaido from "@caido/tailwindcss";
 import { defineConfig } from "@caido-community/dev";
 import vue from "@vitejs/plugin-vue";
+import prefixwrap from "postcss-prefixwrap";
 import tailwindcss from "tailwindcss";
 // @ts-expect-error no declared types at this time
 import tailwindPrimeui from "tailwindcss-primeui";
-import tailwindCaido from "@caido/tailwindcss";
-import path from "path";
-import prefixwrap from "postcss-prefixwrap";
 
 const id = "quickssrf";
 
 export default defineConfig({
   id,
   name: "QuickSSRF",
-  description: "Out-of-Band (OOB) interaction monitoring with multi-provider OAST support",
-  version: "1.0.1",
+  description:
+    "Out-of-Band (OOB) interaction monitoring with multi-provider OAST support",
+  version: "1.0.2",
   author: {
     name: "Caido Labs Inc.",
     email: "dev@caido.io",
