@@ -1,4 +1,5 @@
-import type { DefineAPI, SDK } from "caido:plugin";
+import type { SDK } from "caido:plugin";
+import type { Spec } from "shared";
 
 import {
   apiAddProvider,
@@ -27,40 +28,8 @@ import {
 import { setSDK } from "./sdk";
 import { restartPolling, restoreSessions, startPolling } from "./services";
 import { configStore, providerStore } from "./stores";
-import type { BackendEvents } from "./types";
 
-export type API = DefineAPI<{
-  createSession: typeof apiCreateSession;
-  getSessions: typeof apiGetSessions;
-  getSession: typeof apiGetSession;
-  deleteSession: typeof apiDeleteSession;
-  stopSession: typeof apiStopSession;
-  resumeSession: typeof apiResumeSession;
-  pollSession: typeof apiPollSession;
-  updateSessionTitle: typeof apiUpdateSessionTitle;
-  getActiveSessionIds: typeof apiGetActiveSessionIds;
-
-  getProviders: typeof apiGetProviders;
-  getProvider: typeof apiGetProvider;
-  addProvider: typeof apiAddProvider;
-  updateProvider: typeof apiUpdateProvider;
-  deleteProvider: typeof apiDeleteProvider;
-
-  getInteractions: typeof apiGetInteractions;
-  deleteInteraction: typeof apiDeleteInteraction;
-  clearInteractions: typeof apiClearInteractions;
-
-  getConfig: typeof apiGetConfig;
-  updateConfig: typeof apiUpdateConfig;
-
-  startPolling: typeof apiStartPolling;
-  stopPolling: typeof apiStopPolling;
-  getPollingStatus: typeof apiGetPollingStatus;
-}>;
-
-export type { BackendEvents } from "./types";
-
-export async function init(sdk: SDK<API, BackendEvents>) {
+export async function init(sdk: SDK<Spec>) {
   setSDK(sdk);
 
   await configStore.initialize();
