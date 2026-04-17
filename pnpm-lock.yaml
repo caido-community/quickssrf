@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@caido/sdk-shared': 0.2.2
+
 importers:
 
   .:
@@ -86,8 +89,8 @@ importers:
   packages/shared:
     dependencies:
       '@caido/sdk-shared':
-        specifier: 0.2.1
-        version: 0.2.1
+        specifier: 0.2.2
+        version: 0.2.2
       zod:
         specifier: 4.3.6
         version: 4.3.6
@@ -177,11 +180,8 @@ packages:
       '@codemirror/view': ^6.0.0
       vue: ^3.0.0
 
-  '@caido/sdk-shared@0.2.0':
-    resolution: {integrity: sha512-pgzwCZSu9R7ggOQvnmspxcZ79plCrzWZ3jcv1t4ahqdov8D5Kl0GWNQsO7oj/Bve4vH/spOR3XZefCRCDhcjbw==}
-
-  '@caido/sdk-shared@0.2.1':
-    resolution: {integrity: sha512-pxioQ/SISu/Kd+dSur36ri5FXfFXEJShuq10CAZnHqV0L/x6vmXyIsJjTf9m0b7lrMmPnr6WncB/JWMSaVT1wA==}
+  '@caido/sdk-shared@0.2.2':
+    resolution: {integrity: sha512-qzfwXrjujNAmXxedQW2YI5Ls5h+Y/MvzHZxd10vnL6IJbRJStZGusDTnFYDWUyiQpCrc5kGuY3fLr8dYh3UHnw==}
 
   '@caido/tailwindcss@0.0.1':
     resolution: {integrity: sha512-BGp7s8BiZv6eBV8x/j0t5nPBVKP7Bm+gJVY4APcFgFkNkrRSRDo0VuXN52OhiHc/+vTg85lrmLO8IWMM5bcJrQ==}
@@ -3100,7 +3100,7 @@ snapshots:
   '@caido/sdk-backend@0.56.0':
     dependencies:
       '@caido/quickjs-types': 0.26.0
-      '@caido/sdk-shared': 0.2.0
+      '@caido/sdk-shared': 0.2.2
 
   '@caido/sdk-frontend@0.56.1-beta.1(@ai-sdk/provider@3.0.8)(@codemirror/state@6.6.0)(@codemirror/view@6.38.5)(vue@3.5.22(typescript@5.5.4))':
     dependencies:
@@ -3109,9 +3109,7 @@ snapshots:
       '@codemirror/view': 6.38.5
       vue: 3.5.22(typescript@5.5.4)
 
-  '@caido/sdk-shared@0.2.0': {}
-
-  '@caido/sdk-shared@0.2.1': {}
+  '@caido/sdk-shared@0.2.2': {}
 
   '@caido/tailwindcss@0.0.1':
     dependencies:

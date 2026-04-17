@@ -21,7 +21,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@caido/sdk-shared": "0.2.1",
+    "@caido/sdk-shared": "0.2.2",
     "zod": "4.3.6"
   },
   "devDependencies": {
