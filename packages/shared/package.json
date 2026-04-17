@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "description": "Specification for the QuickSSRF plugin",
   "author": "Caido Labs Inc. <dev@caido.io>",
-  "repository": "https://github.com/caido/sdk-js/",
+  "repository": "https://github.com/caido-community/quickssrf",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.mjs",
