@@ -1,4 +1,12 @@
-import { mkdir, readdir, readFile, rename, rm, writeFile } from "fs/promises";
+import {
+  access,
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  writeFile,
+} from "fs/promises";
 import path from "path";
 
 import { requireSDK } from "../sdk";
@@ -8,16 +16,25 @@ export function getBasePath(): string {
   return sdk.meta.path();
 }
 
-export async function readJson<T>(filePath: string): Promise<T | undefined> {
+async function exists(filePath: string): Promise<boolean> {
   try {
-    const data = await readFile(filePath, "utf-8");
-    return JSON.parse(data) as T;
-  } catch (error) {
-    if ((error as { code?: string }).code === "ENOENT") {
-      return undefined;
-    }
-    throw error;
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
   }
+}
+
+export async function readJson<T>(filePath: string): Promise<T | undefined> {
+  // We can't use an ENOENT error check since
+  // we are not in a true node vm and the error
+  // returned by quickjs are not normalized
+  if (!(await exists(filePath))) {
+    return undefined;
+  }
+
+  const data = await readFile(filePath, "utf-8");
+  return JSON.parse(data) as T;
 }
 
 export async function writeJson<T>(filePath: string, data: T): Promise<void> {
