@@ -58,6 +58,12 @@ jobs:
           VERSION=$(unzip -p plugin_package.zip manifest.json | jq -r .version)
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
+      - name: Publish package
+        run: |
+          pnpm run build:shared
+          npm pkg set "version=${{ steps.meta.outputs.version }}" --prefix packages/shared
+          pnpm --filter @caido-community/quickssrf publish --access public --no-git-checks
+
       - name: Create release
         uses: caido/action-release@v1
         with:
@@ -66,9 +72,3 @@ jobs:
           body: 'Release ${{ steps.meta.outputs.version }}'
           artifacts: 'dist/plugin_package.zip,dist/plugin_package.zip.sig'
           immutableCreate: true
-
-      - name: Publish package
-        run: |
-          pnpm run build:shared
-          npm pkg set "version=${{ steps.meta.outputs.version }}" --prefix packages/shared
-          pnpm --filter @caido-community/quickssrf publish --access public --no-git-checks
