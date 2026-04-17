@@ -1,6 +1,6 @@
 [tools]
 node = "22"
-pnpm = "9"
+pnpm = "10"
 
 [tasks.validate]
 description = "Run all validation checks (install, typecheck, lint, test, knip)"
