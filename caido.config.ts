@@ -15,9 +15,9 @@ export default defineConfig({
   description: "Out-of-Band (OOB) interaction monitoring with multi-provider OAST support",
   version: "1.0.0",
   author: {
-    name: "Amr Elsagaei",
-    email: "amr@caido.io",
-    url: "https://amrelsagaei.com",
+    name: "Caido Labs Inc.",
+    email: "dev@caido.io",
+    url: "https://caido.io",
   },
   plugins: [
     {
