@@ -3,10 +3,6 @@ name: 🚀 Release
 on:
   workflow_dispatch:
 
-env:
-  NODE_VERSION: 22
-  PNPM_VERSION: 9
-
 permissions:
   id-token: write
   contents: read
@@ -27,18 +23,16 @@ jobs:
           fi
 
       - name: Checkout project
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Install Mise
+        uses: caido/action-mise-action@v3.2.0
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          working_directory: .
+          version: ${{ vars.CI__MISE_VERSION }}
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: ${{ env.PNPM_VERSION }}
-          run_install: true
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Build package
         run: pnpm build

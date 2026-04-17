@@ -11,10 +11,6 @@ concurrency:
   group: validate-${{ github.ref_name }}
   cancel-in-progress: true
 
-env:
-  NODE_VERSION: 22
-  PNPM_VERSION: 9
-
 jobs:
   typecheck:
     name: "Typecheck"
