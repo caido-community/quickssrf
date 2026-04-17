@@ -5,14 +5,12 @@ on:
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
 
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Verify main branch
@@ -59,7 +57,6 @@ jobs:
       - name: Publish package
         working-directory: packages/shared
         run: |
-          npm --version
           pnpm run build
           npm pkg set "version=${{ steps.meta.outputs.version }}"
           npm publish --access public --provenance
