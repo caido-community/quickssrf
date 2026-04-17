@@ -26,6 +26,9 @@ async function exists(filePath: string): Promise<boolean> {
 }
 
 export async function readJson<T>(filePath: string): Promise<T | undefined> {
+  // We can't use an ENOENT error check since
+  // we are not in a true node vm and the error
+  // returned by quickjs are not normalized
   if (!(await exists(filePath))) {
     return undefined;
   }
