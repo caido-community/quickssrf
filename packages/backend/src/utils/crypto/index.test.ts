@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   decryptMessage,
   exportKeys,
-  generateRandomString,
   getEncodedPublicKey,
   importKeys,
   initializeKeys,
@@ -55,26 +54,6 @@ describe("key management", { timeout: 30000 }, () => {
 
     expect(parsed.publicKey.n).toBeDefined();
     expect(parsed.privateKey.d).toBeDefined();
-  });
-});
-
-describe("generateRandomString", () => {
-  it("returns string of correct length", () => {
-    expect(generateRandomString(20).length).toBe(20);
-    expect(generateRandomString(1).length).toBe(1);
-    expect(generateRandomString(100).length).toBe(100);
-  });
-
-  it("only contains lowercase alphanumeric chars", () => {
-    const result = generateRandomString(500);
-    expect(/^[a-z0-9]+$/.test(result)).toBe(true);
-  });
-
-  it("generates different strings each time", () => {
-    const results = new Set(
-      Array.from({ length: 10 }, () => generateRandomString(20)),
-    );
-    expect(results.size).toBe(10);
   });
 });
 

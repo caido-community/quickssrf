@@ -13,6 +13,9 @@ import {
   generateRandomString,
   getEncodedPublicKey,
   initializeKeys,
+  randomFrom,
+  XID_ALPHABET,
+  ZBASE32_ALPHABET,
 } from "../../utils/crypto";
 import type {
   OASTProvider,
@@ -96,9 +99,15 @@ export const interactshProvider: OASTProvider = {
 
       const origin = parseOrigin(options.serverUrl);
       const host = parseHost(options.serverUrl);
-      const correlationId = generateRandomString(
+      const correlationId = randomFrom(
+        XID_ALPHABET,
         options.correlationIdLength ?? 20,
       );
+      const nonce = randomFrom(
+        ZBASE32_ALPHABET,
+        options.correlationIdNonceLength ?? 13,
+      );
+      const uniqueId = `${correlationId}${nonce}`;
       const secretKey = generateRandomString(32);
 
       const resp = await fetch(`${origin}/register`, {
@@ -116,13 +125,9 @@ export const interactshProvider: OASTProvider = {
 
       if (!resp.ok) return err(`Registration failed: HTTP ${resp.status}`);
 
-      const nonce = generateRandomString(
-        options.correlationIdNonceLength ?? 13,
-      );
-
       return ok({
-        url: `${origin.replace(host, `${correlationId}${nonce}.${host}`)}`,
-        uniqueId: `${correlationId}${nonce}`,
+        url: `${origin.replace(host, `${uniqueId}.${host}`)}`,
+        uniqueId,
         providerSession: {
           providerId: "",
           providerKind: "interactsh",

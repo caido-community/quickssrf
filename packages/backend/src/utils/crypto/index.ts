@@ -1,5 +1,4 @@
 import { Buffer } from "buffer";
-import { randomBytes } from "crypto";
 
 import { aesCfbDecrypt, aesCtrDecrypt } from "./aes";
 import {
@@ -12,6 +11,13 @@ import {
   type SerializedRSAKeyPair,
   serializeKeyPair,
 } from "./rsa";
+
+export {
+  XID_ALPHABET,
+  ZBASE32_ALPHABET,
+  generateRandomString,
+  randomFrom,
+} from "./random";
 
 let keyPair: RSAKeyPair | undefined;
 
@@ -93,14 +99,4 @@ export async function ensureKeysWithStorage(
   const generated = generateRSAKeyPair();
   await saveFn(JSON.stringify(serializeKeyPair(generated)));
   keyPair = generated;
-}
-
-export function generateRandomString(length: number): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  const bytes = randomBytes(length);
-  let result = "";
-  for (let i = 0; i < length; i++) {
-    result += chars[bytes[i]! % chars.length];
-  }
-  return result;
 }
