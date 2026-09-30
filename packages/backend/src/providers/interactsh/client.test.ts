@@ -14,6 +14,9 @@ vi.mock("../../utils/crypto", () => ({
   initializeKeys: vi.fn(),
   getEncodedPublicKey: vi.fn().mockReturnValue("mock-public-key"),
   generateRandomString: vi.fn((len: number) => "a".repeat(len)),
+  randomFrom: vi.fn((alphabet: string, length: number) =>
+    alphabet[0]!.repeat(length),
+  ),
   decryptMessage: vi.fn().mockReturnValue(
     JSON.stringify({
       protocol: "dns",
@@ -28,6 +31,10 @@ vi.mock("../../utils/crypto", () => ({
 }));
 
 const { interactshProvider } = await import("./client");
+const { randomFrom } = await import("../../utils/crypto");
+
+const XID_ALPHABET = "0123456789abcdefghijklmnopqrstuv";
+const ZBASE32_ALPHABET = "ybndrfg8ejkmcpqxot1uwisza345h769";
 
 function mockResponse(status: number, body: unknown) {
   return {
@@ -54,10 +61,42 @@ describe("interactshProvider", () => {
 
       expect(result.kind).toBe("Ok");
       if (result.kind === "Ok") {
-        expect(result.value.url).toContain("oast.site");
+        const correlationId = "0".repeat(10);
+        const uniqueId = `${correlationId}${"y".repeat(5)}`;
+
+        expect(result.value.url).toBe(`https://${uniqueId}.oast.site`);
+        expect(result.value.uniqueId).toBe(uniqueId);
         expect(result.value.providerSession.providerKind).toBe("interactsh");
-        expect(result.value.providerSession.secretKey).toBeDefined();
-        expect(result.value.providerSession.correlationId).toBeDefined();
+        expect(result.value.providerSession.secretKey).toBe("a".repeat(32));
+        expect(result.value.providerSession.correlationId).toBe(correlationId);
+      }
+
+      expect(randomFrom).toHaveBeenCalledWith(XID_ALPHABET, 10);
+      expect(randomFrom).toHaveBeenCalledWith(ZBASE32_ALPHABET, 5);
+
+      const body = JSON.parse(
+        (mockFetch.mock.calls[0]![1] as { body: { parts: string[] } }).body
+          .parts[0]!,
+      ) as { "correlation-id": string; "secret-key": string };
+      expect(body["correlation-id"]).toBe("0".repeat(10));
+      expect(body["secret-key"]).toBe("a".repeat(32));
+    });
+
+    it("uses the server default lengths of 20 and 13", async () => {
+      mockFetch.mockResolvedValue(mockResponse(200, {}));
+
+      const result = await interactshProvider.register({
+        serverUrl: "https://oast.site",
+      });
+
+      expect(randomFrom).toHaveBeenCalledWith(XID_ALPHABET, 20);
+      expect(randomFrom).toHaveBeenCalledWith(ZBASE32_ALPHABET, 13);
+      expect(result.kind).toBe("Ok");
+      if (result.kind === "Ok") {
+        expect(result.value.providerSession.correlationId).toBe("0".repeat(20));
+        expect(result.value.uniqueId).toBe(
+          `${"0".repeat(20)}${"y".repeat(13)}`,
+        );
       }
     });
 

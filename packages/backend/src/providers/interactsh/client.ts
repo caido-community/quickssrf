@@ -13,6 +13,7 @@ import {
   generateRandomString,
   getEncodedPublicKey,
   initializeKeys,
+  randomFrom,
 } from "../../utils/crypto";
 import type {
   OASTProvider,
@@ -38,6 +39,11 @@ type PollResponse = {
 };
 
 const VALID_PROTOCOLS = new Set<string>(INTERACTION_PROTOCOLS);
+
+// interactsh-server v1.4.0 checks the hostname label with isCorrelationID:
+// a xid prefix plus a zbase32 nonce. One shared alphabet fails that check.
+const XID_ALPHABET = "0123456789abcdefghijklmnopqrstuv";
+const ZBASE32_ALPHABET = "ybndrfg8ejkmcpqxot1uwisza345h769";
 
 function toProtocol(value: string | undefined): InteractionProtocol {
   const normalized = (value ?? "unknown").toLowerCase();
@@ -96,9 +102,15 @@ export const interactshProvider: OASTProvider = {
 
       const origin = parseOrigin(options.serverUrl);
       const host = parseHost(options.serverUrl);
-      const correlationId = generateRandomString(
+      const correlationId = randomFrom(
+        XID_ALPHABET,
         options.correlationIdLength ?? 20,
       );
+      const nonce = randomFrom(
+        ZBASE32_ALPHABET,
+        options.correlationIdNonceLength ?? 13,
+      );
+      const uniqueId = `${correlationId}${nonce}`;
       const secretKey = generateRandomString(32);
 
       const resp = await fetch(`${origin}/register`, {
@@ -116,13 +128,9 @@ export const interactshProvider: OASTProvider = {
 
       if (!resp.ok) return err(`Registration failed: HTTP ${resp.status}`);
 
-      const nonce = generateRandomString(
-        options.correlationIdNonceLength ?? 13,
-      );
-
       return ok({
-        url: `${origin.replace(host, `${correlationId}${nonce}.${host}`)}`,
-        uniqueId: `${correlationId}${nonce}`,
+        url: `${origin.replace(host, `${uniqueId}.${host}`)}`,
+        uniqueId,
         providerSession: {
           providerId: "",
           providerKind: "interactsh",

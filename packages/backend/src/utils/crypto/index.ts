@@ -95,12 +95,15 @@ export async function ensureKeysWithStorage(
   keyPair = generated;
 }
 
-export function generateRandomString(length: number): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+export function randomFrom(alphabet: string, length: number): string {
   const bytes = randomBytes(length);
   let result = "";
   for (let i = 0; i < length; i++) {
-    result += chars[bytes[i]! % chars.length];
+    result += alphabet[bytes[i]! % alphabet.length];
   }
   return result;
+}
+
+export function generateRandomString(length: number): string {
+  return randomFrom("abcdefghijklmnopqrstuvwxyz0123456789", length);
 }
