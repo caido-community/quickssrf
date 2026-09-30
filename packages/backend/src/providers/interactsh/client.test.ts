@@ -31,10 +31,8 @@ vi.mock("../../utils/crypto", () => ({
 }));
 
 const { interactshProvider } = await import("./client");
-const { randomFrom } = await import("../../utils/crypto");
-
-const XID_ALPHABET = "0123456789abcdefghijklmnopqrstuv";
-const ZBASE32_ALPHABET = "ybndrfg8ejkmcpqxot1uwisza345h769";
+const { randomFrom, XID_ALPHABET, ZBASE32_ALPHABET } =
+  await import("../../utils/crypto");
 
 function mockResponse(status: number, body: unknown) {
   return {

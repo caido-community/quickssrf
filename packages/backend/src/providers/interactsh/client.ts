@@ -14,6 +14,8 @@ import {
   getEncodedPublicKey,
   initializeKeys,
   randomFrom,
+  XID_ALPHABET,
+  ZBASE32_ALPHABET,
 } from "../../utils/crypto";
 import type {
   OASTProvider,
@@ -39,11 +41,6 @@ type PollResponse = {
 };
 
 const VALID_PROTOCOLS = new Set<string>(INTERACTION_PROTOCOLS);
-
-// interactsh-server v1.4.0 checks the hostname label with isCorrelationID:
-// a xid prefix plus a zbase32 nonce. One shared alphabet fails that check.
-const XID_ALPHABET = "0123456789abcdefghijklmnopqrstuv";
-const ZBASE32_ALPHABET = "ybndrfg8ejkmcpqxot1uwisza345h769";
 
 function toProtocol(value: string | undefined): InteractionProtocol {
   const normalized = (value ?? "unknown").toLowerCase();
