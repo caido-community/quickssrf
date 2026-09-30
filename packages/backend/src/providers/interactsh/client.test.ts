@@ -28,6 +28,8 @@ vi.mock("../../utils/crypto", () => ({
       timestamp: "2025-01-01T00:00:00Z",
     }),
   ),
+  XID_ALPHABET: "0",
+  ZBASE32_ALPHABET: "y",
 }));
 
 const { interactshProvider } = await import("./client");
@@ -40,6 +42,11 @@ function mockResponse(status: number, body: unknown) {
     status,
     text: () => Promise.resolve(JSON.stringify(body)),
   };
+}
+
+function lastRequestBody(): Record<string, string> {
+  const body = mockFetch.mock.lastCall?.[1]?.body as { parts: [string] };
+  return JSON.parse(body.parts[0]) as Record<string, string>;
 }
 
 describe("interactshProvider", () => {
@@ -72,12 +79,10 @@ describe("interactshProvider", () => {
       expect(randomFrom).toHaveBeenCalledWith(XID_ALPHABET, 10);
       expect(randomFrom).toHaveBeenCalledWith(ZBASE32_ALPHABET, 5);
 
-      const body = JSON.parse(
-        (mockFetch.mock.calls[0]![1] as { body: { parts: string[] } }).body
-          .parts[0]!,
-      ) as { "correlation-id": string; "secret-key": string };
-      expect(body["correlation-id"]).toBe("0".repeat(10));
-      expect(body["secret-key"]).toBe("a".repeat(32));
+      expect(lastRequestBody()).toMatchObject({
+        "correlation-id": "0".repeat(10),
+        "secret-key": "a".repeat(32),
+      });
     });
 
     it("uses the server default lengths of 20 and 13", async () => {

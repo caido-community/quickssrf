@@ -12,7 +12,12 @@ import {
   serializeKeyPair,
 } from "./rsa";
 
-export * from "./random";
+export {
+  XID_ALPHABET,
+  ZBASE32_ALPHABET,
+  generateRandomString,
+  randomFrom,
+} from "./random";
 
 let keyPair: RSAKeyPair | undefined;
 
