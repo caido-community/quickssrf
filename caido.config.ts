@@ -15,7 +15,7 @@ export default defineConfig({
   name: "QuickSSRF",
   description:
     "Out-of-Band (OOB) interaction monitoring with multi-provider OAST support",
-  version: "1.0.4",
+  version: "1.0.5",
   author: {
     name: "Caido Labs Inc.",
     email: "dev@caido.io",
