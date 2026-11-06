@@ -27,6 +27,14 @@ function setEditorContent(view: EditorView | undefined, content: string) {
   });
 }
 
+function mountEditor(host: HTMLElement, element: HTMLElement) {
+  // The editor must fill its host so CodeMirror's scroller gets a bounded
+  // height; otherwise it grows to the full content height and gets clipped.
+  element.style.height = "100%";
+  element.style.minHeight = "0";
+  host.appendChild(element);
+}
+
 function updateEditors(interaction: Interaction | undefined) {
   setEditorContent(requestEditorView, interaction?.rawRequest ?? "");
   setEditorContent(responseEditorView, interaction?.rawResponse ?? "");
@@ -35,13 +43,13 @@ function updateEditors(interaction: Interaction | undefined) {
 onMounted(() => {
   if (requestEl.value !== undefined) {
     const editor = sdk.ui.httpRequestEditor();
-    requestEl.value.appendChild(editor.getElement());
+    mountEditor(requestEl.value, editor.getElement());
     requestEditorView = editor.getEditorView();
   }
 
   if (responseEl.value !== undefined) {
     const editor = sdk.ui.httpResponseEditor();
-    responseEl.value.appendChild(editor.getElement());
+    mountEditor(responseEl.value, editor.getElement());
     responseEditorView = editor.getEditorView();
   }
 
@@ -59,8 +67,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex h-full min-h-0">
-    <div ref="requestEl" class="flex-1 min-w-0 border-r border-surface-700" />
-    <div ref="responseEl" class="flex-1 min-w-0" />
+  <div class="flex h-full min-h-0 overflow-hidden">
+    <div
+      ref="requestEl"
+      class="flex-1 min-w-0 h-full min-h-0 overflow-hidden border-r border-surface-700"
+    />
+    <div
+      ref="responseEl"
+      class="flex-1 min-w-0 h-full min-h-0 overflow-hidden"
+    />
   </div>
 </template>
