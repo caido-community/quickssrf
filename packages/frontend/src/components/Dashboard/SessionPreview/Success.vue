@@ -10,11 +10,14 @@ import { InteractionTable } from "../InteractionTable";
 
 import Header from "./Header.vue";
 
+import { usePageLifecycle } from "@/composables/usePageLifecycle";
+
 const props = defineProps<{
   session: Session;
 }>();
 
 const selectedInteraction = ref<Interaction | undefined>(undefined);
+const { pageEnterCount } = usePageLifecycle();
 
 watch(
   () => props.session.id,
@@ -57,7 +60,10 @@ const onInteractionSelect = (interaction: Interaction) => {
               :min-size="20"
               class="overflow-hidden bg-surface-900"
             >
-              <InteractionDetail :interaction="selectedInteraction" />
+              <InteractionDetail
+                :key="pageEnterCount"
+                :interaction="selectedInteraction"
+              />
             </SplitterPanel>
           </Splitter>
         </template>

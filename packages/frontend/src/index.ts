@@ -5,6 +5,7 @@ import ConfirmationService from "primevue/confirmationservice";
 import Tooltip from "primevue/tooltip";
 import { createApp } from "vue";
 
+import { usePageLifecycle } from "./composables/usePageLifecycle";
 import { SDKPlugin } from "./plugins/sdk";
 import { useNotificationsService } from "./services/notifications";
 import { useSessionsStore } from "./stores/sessions";
@@ -28,7 +29,12 @@ export const init = (sdk: FrontendSDK) => {
 
   app.mount(root);
 
-  sdk.navigation.addPage("/quickssrf", { body: root });
+  const { notifyPageEnter } = usePageLifecycle();
+  sdk.navigation.addPage("/quickssrf", {
+    body: root,
+    // Defer until Caido has re-attached the page body.
+    onEnter: () => setTimeout(notifyPageEnter, 0),
+  });
   const sidebarItem = sdk.sidebar.registerItem("QuickSSRF", "/quickssrf", {
     icon: "fas fa-crosshairs",
   });
